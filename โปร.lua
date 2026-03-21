@@ -1,59 +1,55 @@
--- [[ Nammon's Ultimate Tab Hub ]] --
-local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
-local root = character:WaitForChild("HumanoidRootPart")
-local lighting = game:GetService("Lighting")
-local runService = game:GetService("RunService")
+-- [[ Nammon ZvH V2.4 - GitHub Version ]] --
+local LP = game:GetService("Players").LocalPlayer
+local SG = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
+SG.Name = "Nammon_GH_V2_4"
+SG.ResetOnSpawn = false
 
-local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-screenGui.Name = "NammonHubFinal"
+_G.S, _G.J, _G.E, _G.X = 16, 50, false, false
 
--- ปุ่มเปิด/ปิด MENU
-local toggleBtn = Instance.new("TextButton", screenGui)
-toggleBtn.Size = UDim2.new(0, 55, 0, 55)
-toggleBtn.Position = UDim2.new(0.02, 0, 0.45, 0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-toggleBtn.Text = "MENU"
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(1, 0)
+local M = Instance.new("Frame", SG)
+M.Size = UDim2.new(0, 200, 0, 280); M.Position = UDim2.new(0.5, -100, 0.5, -140)
+M.BackgroundColor3 = Color3.fromRGB(25, 25, 25); M.Active = true; M.Draggable = true
+Instance.new("UICorner", M)
 
--- หน้าจอหลัก
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 320, 0, 220)
-mainFrame.Position = UDim2.new(0.1, 0, 0.35, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-mainFrame.Visible = false
-Instance.new("UICorner", mainFrame)
-
--- Sidebar (ปุ่มเลือกหมวดหมู่)
-local sidebar = Instance.new("Frame", mainFrame)
-sidebar.Size = UDim2.new(0, 90, 1, 0)
-sidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Instance.new("UICorner", sidebar)
-
--- Content Area
-local content = Instance.new("Frame", mainFrame)
-content.Size = UDim2.new(1, -100, 1, -10)
-content.Position = UDim2.new(0, 95, 0, 5)
-content.BackgroundTransparency = 1
-
-local tabs = {}
-local function createTab(name)
-    local f = Instance.new("ScrollingFrame", content)
-    f.Size = UDim2.new(1, 0, 1, 0)
-    f.BackgroundTransparency = 1
-    f.Visible = false
-    f.ScrollBarThickness = 2
-    Instance.new("UIListLayout", f).Padding = UDim.new(0, 5)
-    tabs[name] = f
-    return f
+local function Btn(txt, pos, func, clr)
+    local b = Instance.new("TextButton", M)
+    b.Size = UDim2.new(0.9, 0, 0, 35); b.Position = pos
+    b.BackgroundColor3 = clr or Color3.fromRGB(50, 50, 50)
+    b.Text = txt; b.TextColor3 = Color3.new(1,1,1); b.TextScaled = true
+    Instance.new("UICorner", b); b.MouseButton1Click:Connect(func)
+    return b
 end
 
-local pTab = createTab("Player")
-local gTab = createTab("Gameplay")
-local sTab = createTab("Setting")
+local sT = Btn("Speed: 16", UDim2.new(0.05, 0, 0.05, 0), function() end)
+Btn("-", UDim2.new(0.05, 0, 0.2, 0), function() _G.S = math.max(0, _G.S - 5); sT.Text = "Speed: ".._G.S end, Color3.fromRGB(150, 50, 50)).Size = UDim2.new(0.4, 0, 0, 30)
+Btn("+", UDim2.new(0.55, 0, 0.2, 0), function() _G.S = math.min(200, _G.S + 5); sT.Text = "Speed: ".._G.S end, Color3.fromRGB(50, 150, 50)).Size = UDim2.new(0.4, 0, 0, 30)
 
--- ฟังก์ชันสร้างปุ่ม
-local function addB(tab, txt, color, fn)
-    local b = Instance.
+local jT = Btn("Jump: 50", UDim2.new(0.05, 0, 0.35, 0), function() end)
+Btn("-", UDim2.new(0.05, 0, 0.5, 0), function() _G.J = math.max(0, _G.J - 10); jT.Text = "Jump: ".._G.J end, Color3.fromRGB(150, 50, 50)).Size = UDim2.new(0.4, 0, 0, 30)
+Btn("+", UDim2.new(0.55, 0, 0.5, 0), function() _G.J = math.min(500, _G.J + 10); jT.Text = "Jump: ".._G.J end, Color3.fromRGB(50, 150, 50)).Size = UDim2.new(0.4, 0, 0, 30)
+
+local eB = Btn("ESP: ปิด", UDim2.new(0.05, 0, 0.65, 0), function() _G.E = not _G.E end, Color3.fromRGB(0, 100, 0))
+local xB = Btn("X-Ray: ปิด", UDim2.new(0.05, 0, 0.82, 0), function() _G.X = not _G.X end, Color3.fromRGB(70, 70, 70))
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    pcall(function()
+        local h = LP.Character:FindFirstChild("Humanoid")
+        if h then h.WalkSpeed = _G.S; h.JumpPower = _G.J end
+        eB.Text = "ESP: "..(_G.E and "เปิด" or "ปิด")
+        xB.Text = "X-Ray: "..(_G.X and "เปิด" or "ปิด")
+    end)
+end)
+
+task.spawn(function()
+    while task.wait(1) do
+        for _, v in pairs(workspace:GetChildren()) do
+            if v:IsA("Model") and v ~= LP.Character and v:FindFirstChild("Humanoid") then
+                local hi = v:FindFirstChild("NammonESP") or Instance.new("Highlight", v)
+                hi.Name = "NammonESP"; hi.Enabled = _G.E
+                hi.FillColor = (v:FindFirstChild("Zombie") or v.Name:lower():find("zombie")) and Color3.new(1,0,0) or Color3.new(0,1,0)
+            elseif v:IsA("BasePart") and v.Name ~= "Baseplate" then
+                v.LocalTransparencyModifier = _G.X and 0.6 or 0
+            end
+        end
+    end
+end)
