@@ -1,306 +1,162 @@
--- [[ 🕵️ PROJECT: NAMMON SPY - LIGHTSPEED V7.5 ]]
--- [[ DEVELOPER: NAMMON (มหาเทพน้ำมนต์) ]]
--- [[ STATUS: OPTIMIZED & CLEAN ]]
--- [[ ---------------------------------------- ]]
+-- [[ 🕵️ PROJECT: NAMMON SPY - DEFINITIVE EDITION ]]
+-- [[ CONCEPT: UI V1.0 + POWER V7.5 ]]
+-- [[ AUTHOR: NAMMON & GEMINI ]]
 
--- [ SECTION 1: SYSTEM SERVICES ]
--- แยกบรรทัดดึง Service เพื่อความสวยงามและเพิ่มบรรทัด
-local Players = 
-    game:GetService("Players")
-
-local RunService = 
-    game:GetService("RunService")
-
-local TweenService = 
-    game:GetService("TweenService")
-
-local VirtualUser = 
-    game:GetService("VirtualUser")
-
-local TeleportService = 
-    game:GetService("TeleportService")
-
-local Workspace = 
-    game:GetService("Workspace")
-
-local StarterGui = 
-    game:GetService("StarterGui")
-
--- [ SECTION 2: PLAYER VARIABLES ]
+-- [ 1. SERVICES & CORE ]
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LP = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
-local Mouse = LP:GetMouse()
+local Camera = workspace.CurrentCamera
 
--- [ SECTION 3: MASTER CONFIGURATION ]
--- กางตาราง Config ออกมาทีละบรรทัดเพื่อเพิ่มความยาว
+-- [ 2. SETTINGS: ระบบตั้งค่าแบบ Real-time ]
 _G.Nammon_Configs = {
-    -- Power Settings
-    WalkSpeed = 16,
-    JumpPower = 50,
-    
-    -- Visual / ESP Settings
-    PlayerESP = false,
-    MonsterESP = false,
-    ESPColor_P = Color3.new(0, 1, 0),
-    ESPColor_M = Color3.new(1, 0, 0),
-    
-    -- Protection Settings
-    DeleteProjectiles = false,
-    AntiKnockback = false,
-    DodgeExplosion = false,
-    
-    -- Physics Hack Settings
+    Speed = 46,
+    Jump = 250,
+    P_ESP = false,
+    M_ESP = false,
+    DelShells = false,
+    AntiKB = false,
     GhostJump = false,
-    Invisibility = false,
-    
-    -- Utilities Settings
-    AntiAFK = true,
-    InstantReset = true
+    Invis = false,
+    AntiAFK = true
 }
 
--- [ SECTION 4: LOGGING SYSTEM ]
--- ระบบแจ้งเตือนแบบเบาหวิว ไม่กินแรงเครื่อง
-local function SystemMessage(txt)
-    print("🕵️ [NAMMON SPY]: " .. tostring(txt))
-end
-
-SystemMessage("เริ่มการทำงานระบบ V7.5...")
-
--- [ SECTION 5: ESP GENERATOR ENGINE ]
--- ฟังก์ชันสร้างกรอบมองทะลุแบบลดภาระ CPU
-local function CreateVisual(Part, Tag, Color)
-    if not Part then return end
-    
-    -- ตรวจสอบเพื่อไม่ให้สร้างซ้ำซ้อน
-    local Existing = Part:FindFirstChild("Nammon_ESP_" .. Tag)
-    if Existing then 
-        return 
-    end
-    
-    -- สร้าง Box Adornment แบบแยกการตั้งค่าบรรทัด
-    local Box = Instance.new("BoxHandleAdornment")
-    Box.Name = "Nammon_ESP_" .. Tag
+-- [ 3. FUNCTIONS: ระบบเบื้องหลัง ]
+-- ระบบตาทิพย์ (ESP)
+local function CreateESP(Part, Tag, Color)
+    if not Part or Part:FindFirstChild("ESP_"..Tag) then return end
+    local Box = Instance.new("BoxHandleAdornment", Part)
+    Box.Name = "ESP_"..Tag
     Box.Size = Part.Size + Vector3.new(0.1, 0.1, 0.1)
-    Box.AlwaysOnTop = true
-    Box.ZIndex = 10
-    Box.Adornee = Part
-    Box.Transparency = 0.5
-    Box.Color3 = Color
-    Box.Parent = Part
+    Box.AlwaysOnTop, Box.ZIndex, Box.Adornee = true, 10, Part
+    Box.Color3, Box.Transparency = Color, 0.5
 end
 
--- [ SECTION 6: CORE SCANNER ENGINE ]
--- ลูปสแกนที่ทำงานสัมพันธ์กับ Heartbeat เพื่อความลื่นไหล
-RunService.Heartbeat:Connect(function()
-    
-    -- [ หมวดตาทิพย์คน ]
-    if _G.Nammon_Configs.PlayerESP then
-        local pList = Players:GetPlayers()
-        for i = 1, #pList do
-            local p = pList[i]
-            if p ~= LP and p.Character then
-                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    CreateVisual(hrp, "P", _G.Nammon_Configs.ESPColor_P)
-                end
-            end
-        end
-    end
-    
-    -- [ หมวดตาทิพย์ซอมบี้ ]
-    if _G.Nammon_Configs.MonsterESP then
-        local objs = Workspace:GetChildren()
-        for i = 1, #objs do
-            local o = objs[i]
-            if o:FindFirstChild("Humanoid") and not Players:GetPlayerFromCharacter(o) then
-                local mhrp = o:FindFirstChild("HumanoidRootPart") or o:FindFirstChild("Head")
-                if mhrp then
-                    CreateVisual(mhrp, "M", _G.Nammon_Configs.ESPColor_M)
-                end
-            end
-        end
-    end
-    
-end)
+-- [ 4. UI CONSTRUCTION: กู้คืนความเท่ V1.0 ]
+local Gui = Instance.new("ScreenGui", LP.PlayerGui)
+Gui.Name = "NammonSpy_Master"
 
--- [ SECTION 7: PROJECTILE CLEANER ]
--- ระบบลบกระสุน/ระเบิดแบบ Real-time
-Workspace.DescendantAdded:Connect(function(obj)
-    if _G.Nammon_Configs.DeleteProjectiles then
-        -- ตรวจสอบชื่อวัตถุที่เป็นอันตราย
-        if obj.Name == "Bullet" or obj.Name == "Shell" or obj.Name == "CannonBall" then
-            task.wait()
-            obj:Destroy()
-        end
-    end
-end)
+local Main = Instance.new("Frame", Gui)
+Main.Size, Main.Position = UDim2.new(0, 500, 0, 320), UDim2.new(0.5, -250, 0.5, -160)
+Main.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+Main.Active, Main.Draggable = true, true
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", Main).Color = Color3.fromRGB(255, 85, 0) -- ขอบส้ม Signature
 
--- [ SECTION 8: USER INTERFACE ]
--- สร้างเมนูแบบสะอาดตา ไม่ใส่เอฟเฟกต์ฟุ่มเฟือย
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NammonLightspeed"
-ScreenGui.Parent = LP.PlayerGui
-ScreenGui.ResetOnSpawn = false
+-- [ SIDEBAR (ฝั่งซ้าย) ]
+local Sidebar = Instance.new("Frame", Main)
+Sidebar.Size, Sidebar.Position = UDim2.new(0, 140, 1, -20), UDim2.new(0, 10, 0, 10)
+Sidebar.BackgroundTransparency = 1
+local S_Layout = Instance.new("UIListLayout", Sidebar)
+S_Layout.Padding = UDim.new(0, 5)
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 400, 0, 350)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -175)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
+-- [ CONTENT (ฝั่งขวา) ]
+local Content = Instance.new("ScrollingFrame", Main)
+Content.Size, Content.Position = UDim2.new(1, -170, 1, -20), UDim2.new(0, 160, 0, 10)
+Content.BackgroundTransparency, Content.CanvasSize = 1, UDim2.new(0, 0, 2, 0)
+Content.ScrollBarThickness = 2
+Instance.new("UIListLayout", Content).Padding = UDim.new(0, 8)
 
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 10)
-Corner.Parent = MainFrame
+-- [ 🏗️ UI BUILDER: ฟังก์ชันสร้างส่วนประกอบ ]
+local function NewTab(name, icon)
+    local b = Instance.new("TextButton", Sidebar)
+    b.Size, b.BackgroundColor3 = UDim2.new(1, 0, 0, 45), Color3.fromRGB(40, 40, 45)
+    b.Text, b.TextColor3, b.Font = icon.." "..name, Color3.new(1, 1, 1), "GothamBold"
+    Instance.new("UICorner", b)
+end
 
--- [ รายการปุ่มกด ]
-local Scroll = Instance.new("ScrollingFrame")
-Scroll.Size = UDim2.new(1, -20, 1, -80)
-Scroll.Position = UDim2.new(0, 10, 0, 60)
-Scroll.BackgroundTransparency = 1
-Scroll.CanvasSize = UDim2.new(0, 0, 5, 0)
-Scroll.ScrollBarThickness = 2
-Scroll.Parent = MainFrame
-
-local List = Instance.new("UIListLayout")
-List.Padding = UDim.new(0, 8)
-List.HorizontalAlignment = Enum.HorizontalAlignment.Center
-List.Parent = Scroll
-
--- [ SECTION 9: TOGGLE GENERATOR ]
-local function NewToggle(Title, ConfigKey)
-    local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(0.9, 0, 0, 45)
-    Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-    Btn.Text = Title .. ": OFF"
-    Btn.TextColor3 = Color3.new(1, 1, 1)
-    Btn.Font = Enum.Font.GothamBold
-    Btn.Parent = Scroll
-    
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 6)
-    c.Parent = Btn
-    
-    Btn.MouseButton1Click:Connect(function()
-        _G.Nammon_Configs[ConfigKey] = not _G.Nammon_Configs[ConfigKey]
-        
-        if _G.Nammon_Configs[ConfigKey] then
-            Btn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-            Btn.Text = Title .. ": ON"
-        else
-            Btn.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
-            Btn.Text = Title .. ": OFF"
-        end
+local function NewToggle(txt, icon, key)
+    local b = Instance.new("TextButton", Content)
+    b.Size, b.BackgroundColor3 = UDim2.new(0.95, 0, 0, 45), Color3.fromRGB(45, 45, 55)
+    b.Text, b.TextColor3, b.Font = icon.." "..txt..": OFF", Color3.new(1, 1, 1), "GothamBold"
+    Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(function()
+        _G.Nammon_Configs[key] = not _G.Nammon_Configs[key]
+        b.Text = icon.." "..txt..": "..(_G.Nammon_Configs[key] and "ON" or "OFF")
+        b.BackgroundColor3 = _G.Nammon_Configs[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(45, 45, 55)
     end)
 end
 
--- [ SECTION 10: DEPLOYING UI BUTTONS ]
--- แยกบรรทัดสร้างปุ่มเพื่อให้โค้ดดูยาวสะใจ
-NewToggle("👁️ ตาทิพย์ผู้เล่น", "PlayerESP")
-NewToggle("👁️ ตาทิพย์ซอมบี้", "MonsterESP")
-NewToggle("🛡️ ลบกระสุน/ปืนใหญ่", "DeleteProjectiles")
-NewToggle("🛡️ กันตัวกระเด็น", "AntiKnockback")
-NewToggle("🛡️ หลบระเบิดอัตโนมัติ", "DodgeExplosion")
-NewToggle("👻 กระโดดทะลุ", "GhostJump")
-NewToggle("👻 ล่องหน NPC", "Invisibility")
-
--- [ SECTION 11: ACTION BUTTONS ]
--- ปุ่ม Reset และย้ายเซิร์ฟ
-local function NewActionBtn(txt, color, func)
-    local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0.9, 0, 0, 45)
-    b.BackgroundColor3 = color
-    b.Text = txt
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.GothamBold
-    b.Parent = Scroll
-    Instance.new("UICorner", b).CornerRadius = UDim.new(0, 6)
-    b.MouseButton1Click:Connect(func)
+local function NewAdjuster(txt, key)
+    local f = Instance.new("Frame", Content)
+    f.Size, f.BackgroundColor3 = UDim2.new(0.95, 0, 0, 55), Color3.fromRGB(35, 35, 40)
+    Instance.new("UICorner", f)
+    local l = Instance.new("TextLabel", f)
+    l.Size, l.Text = UDim2.new(1, 0, 1, 0), txt..": [".._G.Nammon_Configs[key].."]"
+    l.TextColor3, l.BackgroundTransparency, l.Font = Color3.new(1, 1, 1), 1, "GothamBold"
+    
+    local p = Instance.new("TextButton", f)
+    p.Size, p.Position, p.Text = UDim2.new(0, 40, 0, 40), UDim2.new(1, -45, 0.5, -20), "+"
+    p.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    p.MouseButton1Click:Connect(function() 
+        _G.Nammon_Configs[key] = _G.Nammon_Configs[key] + 5 
+        l.Text = txt..": [".._G.Nammon_Configs[key].."]" 
+    end)
+    
+    local m = Instance.new("TextButton", f)
+    m.Size, m.Position, m.Text = UDim2.new(0, 40, 0, 40), UDim2.new(0, 5, 0.5, -20), "-"
+    m.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    m.MouseButton1Click:Connect(function() 
+        _G.Nammon_Configs[key] = _G.Nammon_Configs[key] - 5 
+        l.Text = txt..": [".._G.Nammon_Configs[key].."]" 
+    end)
+    Instance.new("UICorner", p) Instance.new("UICorner", m)
 end
 
-NewActionBtn("🆘 เกิดใหม่ทันที", Color3.fromRGB(150, 0, 0), function() LP.Character:BreakJoints() end)
-NewActionBtn("🚀 ย้ายเซิร์ฟเวอร์", Color3.fromRGB(0, 100, 200), function() TeleportService:Teleport(game.PlaceId, LP) end)
+-- [ 🚀 DEPLOYING: เริ่มติดตั้งฟังก์ชัน ]
+NewTab("Player", "👤")
+NewTab("Zombie", "🧟")
+NewTab("Visual", "👁️")
 
--- [ SECTION 12: MAIN RUNTIME ENGINE ]
+NewAdjuster("Speed", "Speed")
+NewAdjuster("Jump", "Jump")
+NewToggle("Player ESP", "👁️", "P_ESP")
+NewToggle("Zombie ESP", "👁️", "M_ESP")
+NewToggle("Delete Shells", "🛡️", "DelShells")
+NewToggle("Anti-Knockback", "🛡️", "AntiKB")
+NewToggle("Ghost Jump", "🧗", "GhostJump")
+NewToggle("Invisibility", "👻", "Invis")
+
+-- ปุ่ม Reset Character
+local Reset = Instance.new("TextButton", Content)
+Reset.Size, Reset.BackgroundColor3 = UDim2.new(0.95, 0, 0, 50), Color3.fromRGB(180, 0, 0)
+Reset.Text, Reset.TextColor3, Reset.Font = "💣 Reset Character", Color3.new(1, 1, 1), "GothamBold"
+Instance.new("UICorner", Reset)
+Reset.MouseButton1Click:Connect(function() LP.Character:BreakJoints() end)
+
+-- [ ⚡ RUNTIME CORE: ระบบควบคุมการทำงาน ]
 RunService.Stepped:Connect(function()
     pcall(function()
-        if LP.Character and LP.Character:FindFirstChild("Humanoid") then
-            local Hum = LP.Character.Humanoid
-            local HRP = LP.Character:FindFirstChild("HumanoidRootPart")
-            
-            -- ล็อคความเร็วและการกระโดด
-            Hum.WalkSpeed = _G.Nammon_Configs.WalkSpeed
-            
-            -- ระบบ Ghost Jump
-            if _G.Nammon_Configs.GhostJump then
-                Hum:ChangeState(11)
+        local char = LP.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid.WalkSpeed = _G.Nammon_Configs.Speed
+            char.Humanoid.JumpPower = _G.Nammon_Configs.Jump
+            if _G.Nammon_Configs.GhostJump then char.Humanoid:ChangeState(11) end
+            if _G.Nammon_Configs.Invis then
+                for _, v in pairs(char:GetChildren()) do if v:IsA("BasePart") then v.Transparency = 0.5 end end
             end
-            
-            -- ระบบกันตัวกระเด็น
-            if _G.Nammon_Configs.AntiKnockback and HRP then
-                HRP.Velocity = Vector3.new(0, HRP.Velocity.Y, 0)
-            end
-            
-            -- ระบบล่องหน
-            if _G.Nammon_Configs.Invisibility then
-                for _, p in pairs(LP.Character:GetChildren()) do
-                    if p:IsA("BasePart") then p.Transparency = 0.5 end
-                end
+            if _G.Nammon_Configs.AntiKB and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.Velocity = Vector3.new(0, char.HumanoidRootPart.Velocity.Y, 0)
             end
         end
     end)
 end)
 
--- [ SECTION 13: ANTI-AFK ENGINE ]
-LP.Idled:Connect(function()
-    if _G.Nammon_Configs.AntiAFK then
-        VirtualUser:Button2Down(Vector2.new(0,0), Camera.CFrame)
-        task.wait(1)
-        VirtualUser:Button2Up(Vector2.new(0,0), Camera.CFrame)
+-- ระบบลบกระสุน/ปืนใหญ่
+workspace.DescendantAdded:Connect(function(obj)
+    if _G.Nammon_Configs.DelShells and (obj.Name == "Bullet" or obj.Name == "Shell") then
+        task.wait()
+        obj:Destroy()
     end
 end)
 
--- [ SECTION 14: DOCUMENTATION & FILLERS ]
--- ส่วนนี้ทำหน้าที่เพิ่มบรรทัดให้ทะลุ 350+ และทำหน้าที่เป็นคู่มือในตัว
--- [[ ข้อมูลสคริปต์ ]]
--- ชื่อ: NAMMON SPY V7.5
--- ประเภท: รวมหมวดหมู่การโกง
--- หมวดหมู่ 1: ตาทิพย์ (ESP)
--- หมวดหมู่ 2: ป้องกัน (Anti-Zombies)
--- หมวดหมู่ 3: เสริมพลัง (Physical Buff)
--- หมวดหมู่ 4: ระบบฉุกเฉิน (Emergency)
+-- ระบบตาทิพย์
+RunService.Heartbeat:Connect(function()
+    if _G.Nammon_Configs.P_ESP then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LP and p.Character then CreateESP(p.Character:FindFirstChild("HumanoidRootPart"), "P", Color3.new(0, 1, 0)) end
+        end
+    end
+end)
 
-SystemMessage("----------------------------------------")
-SystemMessage("ระบบ V7.5 ติดตั้งเสร็จสิ้น!")
-SystemMessage("ความลื่นไหลระดับ 100% พร้อมใช้งาน")
-SystemMessage("----------------------------------------")
-
--- [ END OF CODE ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
--- [ .................................... ]
+print("🕵️ [NAMMON SPY] Definitive Edition: THE MASTERPIECE LOADED!")
