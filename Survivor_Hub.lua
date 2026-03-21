@@ -1,165 +1,129 @@
--- [[ 🕵️ ZOMBIE VS HUMAN - SUPREME EDITION ]]
--- [[ BY NAMMON & GEMINI AI ]]
+-- [[ 🕵️ ZOMBIE VS HUMAN - NAMMON SPY V1.0 ]]
+-- [[ BY NAMMON & GEMINI AI | FOCUS: STABILITY ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LP = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
 
--- [ ⚙️ CONFIG & LANG DATA ]
+-- [ ⚙️ CONFIG ]
 _G.Nammon_Configs = {
-    Speed = 16, Jump = 50, Invis = false,
-    NoBlast = false, NoRunner = false, NoCannon = false, FastAnim = false,
-    DelOrb = false, XrayLevel = 0, BrightLevel = 0,
-    Language = "TH" -- "TH" หรือ "EN"
+    Invis = false, DelOrb = false, FastAnim = false, 
+    NoBlast = false, EspH = false, EspZ = false, FullBright = false
 }
 
-local LangData = {
-    TH = {
-        Tabs = {"ตัวเรา", "ผู้รอดชีวิต", "ซอมบี้", "มองทะลุ", "การตั้งค่า"},
-        Invis = "ล่องหน (ไร้ชื่อ)",
-        Orbs = "ดูดลูกแก้ว",
-        Blast = "กันระเบิด",
-        Attack = "ตีแสง",
-        LangBtn = "เปลี่ยนเป็นภาษาอังกฤษ",
-        Xray = "เอกซเรย์",
-        Bright = "เพิ่มแสง"
-    },
-    EN = {
-        Tabs = {"Player", "Survivor", "Zombie", "Visual", "Settings"},
-        Invis = "Invis (No Name)",
-        Orbs = "Auto Collect Orbs",
-        Blast = "Anti-Explosion",
-        Attack = "Fast Attack",
-        LangBtn = "Switch to Thai",
-        Xray = "X-Ray Mode",
-        Bright = "Brightness"
-    }
-}
-
--- [ 🌈 RGB ENGINE ]
-local function MakeRGB(obj)
-    spawn(function()
+-- [ 🌈 RGB MASTER: ขอบ และ ชื่อหลัก ]
+local function ApplyRGB(obj)
+    task.spawn(function()
         while task.wait() do
-            local hue = tick() % 5 / 5
+            local hue = tick() % 4 / 4
             local color = Color3.fromHSV(hue, 1, 1)
             if obj:IsA("UIStroke") then obj.Color = color
-            elseif obj:IsA("TextLabel") or obj:IsA("TextButton") then obj.TextColor3 = color end
+            elseif obj:IsA("TextLabel") and obj.Name == "MainTitle" then obj.TextColor3 = color end
         end
     end)
 end
 
--- [ 🖥️ UI CONSTRUCTION ]
+-- [ 🖥️ UI CORE CONSTRUCTION ]
 local Gui = Instance.new("ScreenGui", LP.PlayerGui)
-Gui.Name = "NammonSpy_ZvsH_Final"
+Gui.Name = "NammonSpy_Final"; Gui.ResetOnSpawn = false
 
--- 🔮 1. ลูกแก้วเปิด/ปิด (Toggle Ball)
+-- 🔮 ลูกแก้วเปิด/ปิด: รูปสไปร์ ✓ สีชมพู (ขอบ RGB)
 local ToggleBall = Instance.new("ImageButton", Gui)
-ToggleBall.Size = UDim2.new(0, 50, 0, 50)
-ToggleBall.Position = UDim2.new(0, 15, 0, 80)
-ToggleBall.BackgroundColor3 = Color3.new(0,0,0)
-ToggleBall.Image = "rbxassetid://6031094678" 
+ToggleBall.Size = UDim2.new(0, 55, 0, 55); ToggleBall.Position = UDim2.new(0, 20, 0, 100)
+ToggleBall.BackgroundColor3 = Color3.new(0,0,0); ToggleBall.Image = "rbxassetid://6031094678" -- รูป ✓
 Instance.new("UICorner", ToggleBall).CornerRadius = UDim.new(1, 0)
-local BallStroke = Instance.new("UIStroke", ToggleBall)
-BallStroke.Thickness = 3
-MakeRGB(BallStroke)
+local BallStroke = Instance.new("UIStroke", ToggleBall); BallStroke.Thickness = 3
+ApplyRGB(BallStroke)
 
--- 🖼️ 2. Main Frame
 local Main = Instance.new("Frame", Gui)
-Main.Size = UDim2.new(0, 560, 0, 380)
-Main.Position = UDim2.new(0.5, -280, 0.5, -190)
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-Main.Visible = true
-Instance.new("UICorner", Main)
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Thickness = 3
-MakeRGB(MainStroke)
+Main.Size = UDim2.new(0, 560, 0, 400); Main.Position = UDim2.new(0.5, -280, 0.5, -200)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20); Instance.new("UICorner", Main)
+local MainStroke = Instance.new("UIStroke", Main); MainStroke.Thickness = 3
+ApplyRGB(MainStroke)
 
 ToggleBall.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
--- [ 🏷️ HEADER SECTION ]
+-- [ 🏷️ HEADER: ZOMBIE VS HUMAN ]
 local MainTitle = Instance.new("TextLabel", Main)
-MainTitle.Size = UDim2.new(1, 0, 0, 40)
-MainTitle.Position = UDim2.new(0, 0, 0, 10)
-MainTitle.Text = "ZOMBIE VS HUMAN"
-MainTitle.Font = "GothamBold"
-MainTitle.TextSize = 26
-MainTitle.BackgroundTransparency = 1
-MakeRGB(MainTitle)
+MainTitle.Name = "MainTitle"; MainTitle.Size = UDim2.new(1, 0, 0, 45)
+MainTitle.Position = UDim2.new(0, 0, 0, 10); MainTitle.Text = "ZOMBIE VS HUMAN"
+MainTitle.Font = "GothamBold"; MainTitle.TextSize = 28; MainTitle.BackgroundTransparency = 1
+ApplyRGB(MainTitle)
 
 local SubTitle = Instance.new("TextLabel", Main)
-SubTitle.Size = UDim2.new(1, 0, 0, 20)
-SubTitle.Position = UDim2.new(0, 0, 0, 45)
-SubTitle.Text = "Z vs H by Nammon & Gemini"
-SubTitle.Font = "Gotham"
-SubTitle.TextSize = 14
-SubTitle.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-SubTitle.BackgroundTransparency = 1
+SubTitle.Size = UDim2.new(1, 0, 0, 20); SubTitle.Position = UDim2.new(0, 0, 0, 50)
+SubTitle.Text = "Z vs H by Nammon & Gemini"; SubTitle.Font = "Gotham"; SubTitle.TextSize = 14
+SubTitle.TextColor3 = Color3.new(0.8, 0.8, 0.8); SubTitle.BackgroundTransparency = 1
 
--- [ 📂 SIDEBAR & TABS ]
+-- [ 📂 STABLE NAVIGATION ]
 local Sidebar = Instance.new("Frame", Main)
-Sidebar.Size = UDim2.new(0, 170, 1, -90)
-Sidebar.Position = UDim2.new(0, 10, 0, 80)
-Sidebar.BackgroundTransparency = 1
+Sidebar.Size = UDim2.new(0, 175, 1, -120); Sidebar.Position = UDim2.new(0, 10, 0, 100); Sidebar.BackgroundTransparency = 1
 Instance.new("UIListLayout", Sidebar).Padding = UDim.new(0, 8)
 
-local PageContainer = Instance.new("Frame", Main)
-PageContainer.Size = UDim2.new(1, -200, 1, -90)
-PageContainer.Position = UDim2.new(0, 190, 0, 80)
-PageContainer.BackgroundTransparency = 1
+local Container = Instance.new("Frame", Main)
+Container.Size = UDim2.new(1, -210, 1, -120); Container.Position = UDim2.new(0, 200, 0, 100); Container.BackgroundTransparency = 1
 
-local Tabs, TabBtns = {}, {}
+local Pages = {}
 local function CreatePage(name)
-    local f = Instance.new("ScrollingFrame", PageContainer)
-    f.Size = UDim2.new(1, 0, 1, 0)
-    f.BackgroundTransparency = 1; f.Visible = false
-    f.CanvasSize = UDim2.new(0, 0, 2, 0)
+    local f = Instance.new("ScrollingFrame", Container)
+    f.Size = UDim2.new(1, 0, 1, 0); f.BackgroundTransparency = 1; f.Visible = false
+    f.CanvasSize = UDim2.new(0, 0, 2, 0); f.ScrollBarThickness = 2
     Instance.new("UIListLayout", f).Padding = UDim.new(0, 10)
-    Tabs[name] = f
-    return f
+    Pages[name] = f; return f
 end
 
-local P1, P2, P3, P4, P5 = CreatePage("T1"), CreatePage("T2"), CreatePage("T3"), CreatePage("T4"), CreatePage("T5")
+local P1 = CreatePage("Player"); local P2 = CreatePage("Surv"); local P3 = CreatePage("Zom"); local P4 = CreatePage("Vis"); local P5 = CreatePage("Set")
 
-local function UpdateLanguage()
-    local D = LangData[_G.Nammon_Configs.Language]
-    for i, btn in pairs(TabBtns) do btn.Text = D.Tabs[i] end
-    -- อัปเดตชื่อปุ่มฟังก์ชันในนี้เพิ่มเติมได้ครับ
+local function OpenTab(id)
+    P1.Visible = (id == 1); P2.Visible = (id == 2); P3.Visible = (id == 3); P4.Visible = (id == 4); P5.Visible = (id == 5)
 end
 
-local function ShowTab(idx)
-    local i = 1
-    for _, v in pairs(Tabs) do v.Visible = (i == idx) i = i + 1 end
-end
-
-local function AddTabButton(idx)
+local function AddTab(txt, id)
     local b = Instance.new("TextButton", Sidebar)
-    b.Size = UDim2.new(1, 0, 0, 52)
-    b.Font = "GothamBold"; b.TextSize = 20
-    b.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    b.TextColor3 = Color3.new(1, 1, 1)
-    Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(function() ShowTab(idx) end)
-    table.insert(TabBtns, b)
+    b.Size = UDim2.new(1, 0, 0, 52); b.Text = txt; b.Font = "GothamBold"; b.TextSize = 19
+    b.BackgroundColor3 = Color3.fromRGB(30, 30, 35); b.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", b); b.MouseButton1Click:Connect(function() OpenTab(id) end)
 end
 
-for i=1, 5 do AddTabButton(i) end
-UpdateLanguage()
-ShowTab(1)
+AddTab("ตัวเรา", 1); AddTab("ผู้รอดชีวิต", 2); AddTab("ซอมบี้", 3); AddTab("มองทะลุ", 4); AddTab("การตั้งค่า", 5)
 
--- [ 🚀 การตั้งค่า: ปุ่มสลับภาษา ]
-local LangBtn = Instance.new("TextButton", P5)
-LangBtn.Size = UDim2.new(0.95, 0, 0, 60)
-LangBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
-LangBtn.Font = "GothamBold"; LangBtn.TextSize = 18; LangBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", LangBtn)
-MakeRGB(Instance.new("UIStroke", LangBtn))
+-- [ 🚀 COMPONENT: ปุ่มสีขาวนิ่งๆ ]
+local function NewToggle(txt, key, parent)
+    local b = Instance.new("TextButton", parent)
+    b.Size = UDim2.new(0.95, 0, 0, 50); b.Text = txt..": OFF"; b.Font = "GothamBold"; b.TextSize = 17
+    b.TextColor3 = Color3.new(1, 1, 1); b.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+    Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(function()
+        _G.Nammon_Configs[key] = not _G.Nammon_Configs[key]
+        b.Text = txt..": "..(_G.Nammon_Configs[key] and "ON" or "OFF")
+        b.BackgroundColor3 = _G.Nammon_Configs[key] and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(45, 45, 50)
+    end)
+end
 
-LangBtn.MouseButton1Click:Connect(function()
-    _G.Nammon_Configs.Language = (_G.Nammon_Configs.Language == "TH") and "EN" or "TH"
-    LangBtn.Text = LangData[_G.Nammon_Configs.Language].LangBtn
-    UpdateLanguage()
+-- [ 🛠️ จัดหมวดหมู่ปุ่ม (FIXED!) ]
+NewToggle("ล่องหน (ไร้ชื่อ)", "Invis", P1) -- หน้า 1
+
+NewToggle("ดูดลูกแก้ว", "DelOrb", P2) -- หน้า 2
+NewToggle("ตีความเร็วแสง", "FastAnim", P2)
+NewToggle("กันแรงระเบิด", "NoBlast", P2)
+
+local Soon = Instance.new("TextLabel", P3) -- หน้า 3
+Soon.Size = UDim2.new(1,0,0,50); Soon.Text = "COMING SOON..."; Soon.TextColor3 = Color3.new(0.5,0.5,0.5); Soon.BackgroundTransparency = 1
+
+NewToggle("มองทะลุมนุษย์", "EspH", P4) -- หน้า 4
+NewToggle("มองทะลุซอมบี้", "EspZ", P4)
+NewToggle("เปิดไฟสว่าง", "FullBright", P4)
+
+local LangBtn = Instance.new("TextButton", P5) -- หน้า 5 (การตั้งค่า)
+LangBtn.Size = UDim2.new(0.95, 0, 0, 55); LangBtn.Text = "เปลี่ยนเป็นภาษาอังกฤษ"
+LangBtn.Font = "GothamBold"; LangBtn.TextSize = 17; LangBtn.TextColor3 = Color3.new(1, 1, 1)
+LangBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35); Instance.new("UICorner", LangBtn)
+
+-- [ ⚡ LOGIC ]
+RunService.RenderStepped:Connect(function()
+    if _G.Nammon_Configs.FullBright then Lighting.Brightness = 3; Lighting.ClockTime = 12 end
 end)
-LangBtn.Text = LangData[_G.Nammon_Configs.Language].LangBtn
 
-print("🕵️ ZOMBIE VS HUMAN V1.0 - MULTI-LANG READY!")
+OpenTab(1) -- Start
+print("🕵️ NAMMON SPY V1.0 - STABLE VERSION READY!")
