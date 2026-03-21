@@ -1,81 +1,132 @@
--- [[ Nammon ZvH V3.5 - Vengeance Edition ]] --
+-- [[ NAMMON ZvH HUB - V6.5 Final Ultimate (Kid Hub Edition) ]] --
+-- ผู้พัฒนา: Nammon (ร่วมกับพี่ Gemini)
+-- ฟีเจอร์: กันระเบิด, กันปืนใหญ่บักทอง, ล่องหน, ESP, Ghost Jump, Battery Saver
+
 local LP = game:GetService("Players").LocalPlayer
 local RS = game:GetService("RunService")
+local VU = game:GetService("VirtualUser")
+local TS = game:GetService("TeleportService")
+local CG = game:GetService("CoreGui")
+
+-- [ ⚙️ ตั้งค่าเริ่มต้น ]
+_G.Speed = 25
+_G.Jump = 50
+_G.Invis = false
+_G.AntiMissile = true
+_G.ExpertDodge = true
+_G.GhostJump = false
+_G.PlayerESP = false
+_G.LootESP = false
+_G.BatterySafe = false
+
+-- [ 🖥️ สร้าง GUI (ลูกแก้ว RGB & Menu) ]
 local SG = Instance.new("ScreenGui", LP:WaitForChild("PlayerGui"))
-SG.Name = "Nammon_V3_5"; SG.ResetOnSpawn = false
+SG.Name = "Nammon_KidHub"; SG.ResetOnSpawn = false
 
-_G.S, _G.J, _G.E, _G.X, _G.NC = 16, 50, false, false, false
-
--- [ 🔵 ลูกแก้วนีออน RGB ]
 local Orb = Instance.new("TextButton", SG); Orb.Size = UDim2.new(0, 50, 0, 50); Orb.Position = UDim2.new(0, 20, 0.5, -25); Orb.Draggable = true
-Orb.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Orb.Text = "🕵️"; Orb.TextSize = 28; Instance.new("UICorner", Orb).CornerRadius = UDim.new(1, 0)
+Orb.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Orb.Text = "🌀"; Orb.TextSize = 25; Instance.new("UICorner", Orb).CornerRadius = UDim.new(1, 0)
 local OSt = Instance.new("UIStroke", Orb); OSt.Thickness = 3; OSt.ApplyStrokeMode = "Border"
-task.spawn(function() while task.wait(0.05) do local h = tick() % 3 / 3; OSt.Color = Color3.fromHSV(h, 0.8, 1); Orb.TextStrokeColor3 = OSt.Color; Orb.TextStrokeTransparency = 0.5 end end)
+task.spawn(function() while task.wait(0.05) do local h = tick() % 3 / 3; OSt.Color = Color3.fromHSV(h, 0.8, 1) end end)
 
--- [ 🖥️ Main UI ]
-local M = Instance.new("Frame", SG); M.Size = UDim2.new(0, 220, 0, 320); M.Position = UDim2.new(0.5, -110, 0.5, -160); M.Visible = false; M.Active = true; M.Draggable = true; Instance.new("UICorner", M); M.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+local M = Instance.new("Frame", SG); M.Size = UDim2.new(0, 230, 0, 450); M.Position = UDim2.new(0.5, -115, 0.5, -225); M.Visible = false; M.Active = true; M.Draggable = true; M.BackgroundColor3 = Color3.fromRGB(20, 20, 20); Instance.new("UICorner", M)
 Orb.MouseButton1Click:Connect(function() M.Visible = not M.Visible end)
-local SF = Instance.new("ScrollingFrame", M); SF.Size = UDim2.new(1, -10, 1, -10); SF.Position = UDim2.new(0, 5, 0, 5); SF.BackgroundTransparency = 1; SF.CanvasSize = UDim2.new(0, 0, 0, 500); SF.ScrollBarThickness = 3
-local LL = Instance.new("UIListLayout", SF); LL.HorizontalAlignment = "Center"; LL.Padding = UDim.new(0, 8)
-local function Btn(txt, func, clr) local b = Instance.new("TextButton", SF); b.Size = UDim2.new(0.95, 0, 0, 38); b.BackgroundColor3 = clr or Color3.fromRGB(40, 40, 40); b.Text = txt; b.TextColor3 = Color3.new(1,1,1); b.TextScaled = true; Instance.new("UICorner", b); b.MouseButton1Click:Connect(func) return b end
 
--- [ ⚙️ ระบบควบคุม ]
-local function CreateCounter(prefix, var, step) local label = Btn(prefix..": ".._G[var], function() end); local frame = Instance.new("Frame", SF); frame.Size = UDim2.new(0.95, 0, 0, 35); frame.BackgroundTransparency = 1; local function SetupBtn(t,v,c,p) local b = Instance.new("TextButton", frame); b.Size = UDim2.new(0.45, 0, 1, 0); b.Position = p; b.BackgroundColor3 = c; b.Text = t; b.TextColor3 = Color3.new(1,1,1); b.TextScaled = true; Instance.new("UICorner", b); local h = false; b.MouseButton1Down:Connect(function() h = true; while h do _G[var] = math.clamp(_G[var] + v, 0, 500); label.Text = prefix..": ".._G[var]; task.wait(0.15) end end); b.MouseButton1Up:Connect(function() h = false end); b.MouseLeave:Connect(function() h = false end) end; SetupBtn("-",-step,Color3.fromRGB(150,50,50),UDim2.new(0,0,0,0)); SetupBtn("+",step,Color3.fromRGB(50,150,50),UDim2.new(0.55,0,0,0)) end
-CreateCounter("Speed", "S", 5); CreateCounter("Jump", "J", 5)
-local eB = Btn("ESP: ปิด", function() _G.E = not _G.E end, Color3.fromRGB(0, 100, 0))
-local xB = Btn("X-Ray: ปิด", function() _G.X = not _G.X end, Color3.fromRGB(60, 60, 60))
-local nB = Btn("กระโดดทะลุ: ปิด", function() _G.NC = not _G.NC end, Color3.fromRGB(150, 100, 0))
+local Title = Instance.new("TextLabel", M); Title.Size = UDim2.new(1, 0, 0, 40); Title.Text = "NAMMON ZvH V6.5"; Title.TextColor3 = Color3.new(1,1,1); Title.BackgroundTransparency = 1; Title.TextSize = 20
 
--- [ ⚙️ ระบบตัวละคร ]
-RS.RenderStepped:Connect(function() pcall(function() 
-    local char = LP.Character; if not char then return end
-    local h = char:FindFirstChildOfClass("Humanoid")
-    if h then h.WalkSpeed = _G.S; h.JumpPower = _G.J; h.UseJumpPower = true end
-    eB.Text = "ESP: "..(_G.E and "เปิด" or "ปิด"); xB.Text = "X-Ray: "..(_G.X and "เปิด" or "ปิด"); nB.Text = "กระโดดทะลุ: "..(_G.NC and "เปิด" or "ปิด")
-    if char.PrimaryPart.Velocity.Y < -65 then char.PrimaryPart.Velocity = Vector3.new(char.PrimaryPart.Velocity.X, -5, char.PrimaryPart.Velocity.Z) end
-end) end)
+local SF = Instance.new("ScrollingFrame", M); SF.Size = UDim2.new(1, -10, 1, -50); SF.Position = UDim2.new(0, 5, 0, 45); SF.BackgroundTransparency = 1; SF.CanvasSize = UDim2.new(0, 0, 0, 850); SF.ScrollBarThickness = 3
+local UIList = Instance.new("UIListLayout", SF); UIList.HorizontalAlignment = "Center"; UIList.Padding = UDim.new(0, 6)
 
--- [ ⚙️ Ultimate Vengeance ESP ]
-task.spawn(function()
-    while task.wait(0.5) do -- สแกนไวขึ้นเพื่อความสะใจ
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("Humanoid") and v.Parent and v.Parent ~= LP.Character then
-                local char = v.Parent
-                local isPlayer = game.Players:GetPlayerFromCharacter(char)
-                local h = char:FindFirstChild("NammonESP") or Instance.new("Highlight", char)
-                h.Name = "NammonESP"; h.Enabled = _G.E; h.Adornee = char
-                
-                if isPlayer then
-                    h.FillColor = Color3.new(0, 1, 0); h.FillTransparency = 0.6; h.OutlineTransparency = 0.5
-                else
-                    local enemyType = "normal"
-                    for _, item in pairs(char:GetDescendants()) do
-                        local n = item.Name:lower()
-                        if n:find("pick") or n:find("mine") or n:find("missile") or n:find("launcher") or n:find("gold") then
-                            enemyType = "target" break -- เป้าหมายหลัก!
-                        elseif n:find("sword") or n:find("bow") or n:find("arrow") or n:find("blade") then
-                            enemyType = "danger"
-                        end
-                    end
-                    
-                    if enemyType == "target" then
-                        -- # สีทองเรืองแสง (เป้าหมายล้างแค้น)
-                        h.FillColor = Color3.fromRGB(255, 215, 0)
-                        h.FillTransparency = 0 -- ทึบแสง มองเห็นชัดสุดๆ
-                        h.OutlineColor = Color3.fromRGB(255, 255, 255) -- ขอบขาวนีออน
-                        h.OutlineTransparency = 0
-                    elseif enemyType == "danger" then
-                        h.FillColor = Color3.fromRGB(160, 32, 240); h.FillTransparency = 0.4; h.OutlineTransparency = 0.2
-                    else
-                        h.FillColor = Color3.new(1, 0, 0); h.FillTransparency = 0.5; h.OutlineTransparency = 0.3
+local function Btn(txt, func, clr)
+    local b = Instance.new("TextButton", SF); b.Size = UDim2.new(0.9, 0, 0, 35); b.BackgroundColor3 = clr or Color3.fromRGB(45, 45, 45); b.Text = txt; b.TextColor3 = Color3.new(1,1,1); b.TextScaled = true; Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(func); return b
+end
+
+-- [ ⚡ ฟังก์ชันหลัก ]
+
+-- 1. วิ่งไว & โดดสูง
+local spdB = Btn("🏃 สปีด: 25", function(b)
+    if _G.Speed == 25 then _G.Speed = 50 elseif _G.Speed == 50 then _G.Speed = 80 elseif _G.Speed == 80 then _G.Speed = 16 else _G.Speed = 25 end
+    b.Text = "🏃 สปีด: ".._G.Speed
+end)
+
+-- 2. ล่องหน (มือสังหาร)
+Btn("👻 ล่องหน (Invis)", function(b)
+    _G.Invis = not _G.Invis
+    if _G.Invis then
+        for _, v in pairs(LP.Character:GetDescendants()) do
+            if v:IsA("BasePart") or v:IsA("Decal") then v.Transparency = 1 elseif v:IsA("Accessory") then v.Handle.Transparency = 1 end
+        end
+        if LP.Character:FindFirstChild("Head") then LP.Character.Head:ClearAllChildren() end
+        b.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    else
+        LP.Character.Humanoid.Health = 0 -- Reset เพื่อกลับมาร่างเดิม
+    end
+end)
+
+-- 3. กันปืนใหญ่บักทอง & ระเบิด
+Btn("🛡️ กันปืนใหญ่/ระเบิด: เปิด", function(b)
+    _G.AntiMissile = not _G.AntiMissile
+    b.Text = "🛡️ กันปืนใหญ่/ระเบิด: "..(_G.AntiMissile and "เปิด" or "ปิด")
+end, Color3.fromRGB(200, 100, 0))
+
+-- 4. กระโดดทะลุ (Ghost Jump)
+Btn("🧗 กระโดดทะลุ: ปิด", function(b)
+    _G.GhostJump = not _G.GhostJump
+    b.Text = "🧗 กระโดดทะลุ: "..(_G.GhostJump and "เปิด" or "ปิด")
+end)
+
+-- 5. มองทะลุ (ESP)
+Btn("👁️ มองทะลุคน", function() _G.PlayerESP = not _G.PlayerESP end)
+Btn("💎 มองทะลุของ (Loot)", function() _G.LootESP = not _G.LootESP end)
+
+-- 6. โหมดรักษาของ 30 นาที & ประหยัดแบต
+Btn("🔋 โหมดประหยัดแบต", function(b)
+    _G.BatterySafe = not _G.BatterySafe
+    RS:Set3dRenderingEnabled(not _G.BatterySafe)
+    setfpscap(_G.BatterySafe and 10 or 60)
+    b.BackgroundColor3 = _G.BatterySafe and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(45, 45, 45)
+end)
+
+Btn("🚀 วาร์ปไปแอบบนฟ้า (รักษาของ)", function()
+    LP.Character.HumanoidRootPart.CFrame = LP.Character.HumanoidRootPart.CFrame * CFrame.new(0, 5000, 0)
+    local p = Instance.new("Part", workspace); p.Size = Vector3.new(20,1,20); p.Anchored = true; p.CFrame = LP.Character.HumanoidRootPart.CFrame * CFrame.new(0,-3.5,0)
+end, Color3.fromRGB(80, 80, 80))
+
+-- [ 🔄 ระบบทำงานเบื้องหลัง (Loop) ]
+RS.Heartbeat:Connect(function()
+    pcall(function()
+        local char = LP.Character
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        -- วิ่งไว/โดดสูง
+        hum.WalkSpeed = _G.Speed
+        hum.JumpPower = _G.Jump
+        
+        -- กระโดดทะลุ
+        if _G.GhostJump and (hum:GetState() == Enum.HumanoidStateType.Jumping or hum:GetState() == Enum.HumanoidStateType.Freefall) then
+            for _, v in pairs(char:GetChildren()) do if v:IsA("BasePart") then v.CanCollide = false end end
+        else
+            for _, v in pairs(char:GetChildren()) do if v:IsA("BasePart") then v.CanCollide = true end end
+        end
+
+        -- ระบบดักกระสุนปืนใหญ่บักทอง/ระเบิด
+        if _G.AntiMissile then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("BasePart") and (v.Name:lower():find("cannon") or v.Name:lower():find("bomb")) then
+                    if (char.PrimaryPart.Position - v.Position).Magnitude < 30 then
+                        char.PrimaryPart.CFrame = char.PrimaryPart.CFrame * CFrame.new(0, 0, 45) -- วาร์ปหนี
                     end
                 end
             end
-            if _G.X and v:IsA("BasePart") and not v:IsDescendantOf(LP.Character) and v.Name ~= "Baseplate" then
-                v.LocalTransparencyModifier = 0.7
-            elseif not _G.X and v:IsA("BasePart") then
-                v.LocalTransparencyModifier = 0
-            end
         end
-    end
+    end)
 end)
+
+-- กันเด้ง (Anti-AFK)
+LP.Idled:Connect(function() VU:CaptureController(); VU:ClickButton2(Vector2.new()) end)
+
+-- Rejoin ทันทีที่หลุด
+CG.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+    if child.Name == "ErrorPrompt" then TS:Teleport(game.PlaceId, LP) end
+end)
+
+print("NAMMON KID HUB LOADED SUCCESS!")
