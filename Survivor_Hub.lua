@@ -1,235 +1,187 @@
--- [[ NAMMON SPY v1.0 | THE ETERNAL SOURCE CODE ]] --
--- [[ Created by Nammon & Gemini | Nong Khai, Thailand ]] --
--- [[ ALL-IN-ONE: PLAYER, COMBAT, ZOMBIE, ESP, AI, CONFIG ]] --
+--[[
+    PROJECT: NAMMON SPY V8.1 (OFFICIAL GITHUB VERSION)
+    OWNER: NAMMON (น้ำมนต์)
+    FEATURES: 
+        - Professional UI (Red/Green Buttons)
+        - Safe Ghost Jump (Only Player Blocks)
+        - Kill Aura (Slider 1-500, Active with Tool)
+        - Anti-Fall Damage (Bypass)
+        - RGB Orb Toggle (Draggable)
+]]
 
--- [[ INITIALIZATION: UI LIBRARY ]] --
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("NAMMON SPY v1.0", "DarkTheme")
-
--- [[ DATABASE & GLOBAL SETTINGS ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
-local StarterGui = game:GetService("StarterGui")
-local Lighting = game:GetService("Lighting")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 
-local Configs = {
-    Speed = 16, Jump = 50, NoFall = true, GhostMode = false,
-    AntiAFK = true, AntiBan = true, RGB_Speed = 0.5,
-    ESP_Enabled = true, ShowHealth = true, FullBright = false,
-    AutoFarm = false, AIScan = false,
-    BehaviorTags = {Aggressive = {}, Friendly = {}},
-    Slots = {["1"] = {}, ["2"] = {}, ["3"] = {}}
-}
+-- [ Configuration ]
+local ws_value = 46
+local jp_value = 250
+local ka_on = true -- เปิด Standby ไว้เสมอ
+local ka_range = 25
+local noclip_on = false
+local hitRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Hit")
+local fallRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("FallDamage")
 
--- [[ CORE SYSTEM: RGB ENGINE ]] --
-local function GetRGB()
-    local t = tick() * Configs.RGB_Speed
-    return Color3.fromHSV(t % 1, 0.8, 1)
-end
-
--- [[ CORE SYSTEM: NOTIFICATION ]] --
-local function Notify(title, text)
-    StarterGui:SetCore("SendNotification", {
-        Title = title, 
-        Text = text, 
-        Duration = 5,
-        Icon = "rbxassetid://6031289353"
-    })
-end
-
--- [[ CORE SYSTEM: SAVE/LOAD LOGIC ]] --
-local function SaveToSlot(slot)
-    local data = HttpService:JSONEncode(Configs)
-    writefile("NammonSpy_Slot"..slot..".json", data)
-    Notify("SYSTEM", "บันทึกข้อมูลลง Slot "..slot.." สำเร็จ! 💾")
-end
-
-local function LoadFromSlot(slot)
-    if isfile("NammonSpy_Slot"..slot..".json") then
-        local data = HttpService:JSONDecode(readfile("NammonSpy_Slot"..slot..".json"))
-        Configs = data
-        Notify("SYSTEM", "โหลดข้อมูลจาก Slot "..slot.." สำเร็จ! 🎰")
-    else
-        Notify("WARNING", "ไม่พบข้อมูลใน Slot "..slot)
-    end
-end
-
--- [[ 1. PLAYER CATEGORY (ตัวเรา) ]] --
-local PlayerTab = Window:NewTab("ตัวเรา (Player)")
-local PSection = PlayerTab:NewSection("ระบบควบคุม & ล่องหน")
-
-PSection:NewSlider("ความเร็วสายลับ (Speed)", "ปรับความเร็ววิ่งแบบนิ่งๆ", 500, 16, function(s)
-    Configs.Speed = s
+-- [ 1. Anti-Fall Damage ]
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    if self == fallRemote and getnamecallmethod() == "FireServer" then return nil end
+    return oldNamecall(self, ...)
 end)
 
-RunService.Heartbeat:Connect(function()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = Configs.Speed
-        if Configs.NoFall then
-            if LocalPlayer.Character.Humanoid:GetState() == Enum.HumanoidStateType.FallingDown then
-                LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Landed)
-            end
-        end
-    end
-end)
-
-PSection:NewToggle("ล่องหน Ghost Mode 👻", "คนอื่นไม่เห็นเราแต่เรากลับมาได้", function(state)
-    Configs.GhostMode = state
-    spawn(function()
-        while Configs.GhostMode do
-            if LocalPlayer.Character then
-                for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-                    if v:IsA("BasePart") or v:IsA("Decal") then
-                        v.Transparency = 0.8
+-- [ 2. Smart Ghost Jump (Player Blocks Only) ]
+RunService.Stepped:Connect(function()
+    if noclip_on and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                -- เช็คว่าใกล้ๆ มีบล็อกที่คนสร้างไหม (ชื่อโฟลเดอร์ส่วนใหญ่คือ Buildings หรือ Builds)
+                local isBlock = false
+                local builds = workspace:FindFirstChild("Buildings") or workspace:FindFirstChild("Builds")
+                
+                -- ตรวจสอบวัตถุรอบตัวในระยะใกล้
+                for _, obj in pairs(workspace:GetPartBoundsInRadius(part.Position, 1)) do
+                    if builds and obj:IsDescendantOf(builds) then
+                        isBlock = true
+                        break
+                    elseif obj.Name == "Part" and obj.Parent:IsA("Model") and obj ~= part then
+                        isBlock = true
+                        break
+                    end
+                end
+                
+                if isBlock then
+                    part.CanCollide = false -- ทะลุได้ถ้าเป็นบล็อกคนวาง
+                else
+                    -- ถ้าเป็นพื้นแมพหรือวัตถุเดิม ให้ชนปกติเพื่อไม่ให้ร่วง
+                    if part.Name == "HumanoidRootPart" then 
+                        part.CanCollide = true 
                     end
                 end
             end
-            wait(0.5)
         end
-        if not state and LocalPlayer.Character then
-            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-                if v:IsA("BasePart") or v:IsA("Decal") then
-                    v.Transparency = 0
+    end
+end)
+
+-- [ 3. UI Implementation ]
+local ScreenGui = Instance.new("ScreenGui", (gethui and gethui()) or game:GetService("CoreGui"))
+ScreenGui.Name = "NAMMON_SPY_V8_1"
+
+-- Orb Toggle
+local Orb = Instance.new("ImageButton", ScreenGui)
+Orb.Size = UDim2.new(0, 50, 0, 50)
+Orb.Position = UDim2.new(0, 10, 0.5, 0)
+Orb.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Orb.Image = "rbxassetid://6031068433"
+Instance.new("UICorner", Orb).CornerRadius = UDim.new(1, 0)
+local OrbStroke = Instance.new("UIStroke", Orb)
+OrbStroke.Thickness = 2
+
+-- Main Frame
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 340, 0, 260)
+Main.Position = UDim2.new(0.5, -170, 0.5, -130)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Main.Visible = false
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+local MainStroke = Instance.new("UIStroke", Main)
+MainStroke.Thickness = 2; MainStroke.Color = Color3.fromRGB(255, 100, 0) -- ขอบส้ม
+
+-- Adjuster Function (Red/Green)
+local function createAdjuster(title, startVal, increment, pos, parent, callback)
+    local F = Instance.new("Frame", parent)
+    F.Size = UDim2.new(0, 300, 0, 45); F.Position = pos; F.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    Instance.new("UICorner", F)
+
+    local L = Instance.new("TextLabel", F)
+    L.Size = UDim2.new(1, 0, 1, 0); L.BackgroundTransparency = 1; L.TextColor3 = Color3.new(1, 1, 1)
+    L.Font = Enum.Font.GothamBold; L.Text = title .. ": [" .. startVal .. "]"
+
+    local M = Instance.new("TextButton", F)
+    M.Size = UDim2.new(0, 45, 1, 0); M.BackgroundColor3 = Color3.fromRGB(180, 0, 0); M.Text = "-"; M.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", M)
+
+    local P = Instance.new("TextButton", F)
+    P.Size = UDim2.new(0, 45, 1, 0); P.Position = UDim2.new(1, -45, 0, 0); P.BackgroundColor3 = Color3.fromRGB(0, 150, 0); P.Text = "+"; P.TextColor3 = Color3.new(1, 1, 1)
+    Instance.new("UICorner", P)
+
+    M.MouseButton1Click:Connect(function() callback(-increment) end)
+    P.MouseButton1Click:Connect(function() callback(increment) end)
+    return L
+end
+
+local sL = createAdjuster("Speed", ws_value, 1, UDim2.new(0.5, -150, 0, 20), Main, function(d) ws_value = math.max(0, ws_value + d) end)
+local jL = createAdjuster("Jump", jp_value, 10, UDim2.new(0.5, -150, 0, 75), Main, function(d) jp_value = math.max(0, jp_value + d) end)
+
+-- Ghost Jump Toggle
+local ghostBtn = Instance.new("TextButton", Main)
+ghostBtn.Size = UDim2.new(0, 300, 0, 40); ghostBtn.Position = UDim2.new(0.5, -150, 0, 130)
+ghostBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45); ghostBtn.Text = "👻 Ghost Jump (Safe Pass)"; ghostBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", ghostBtn)
+ghostBtn.MouseButton1Click:Connect(function()
+    noclip_on = not noclip_on
+    ghostBtn.BackgroundColor3 = noclip_on and Color3.fromRGB(0, 120, 200) or Color3.fromRGB(45, 45, 45)
+end)
+
+-- Kill Aura Slider
+local rL = Instance.new("TextLabel", Main)
+rL.Size = UDim2.new(0, 300, 0, 20); rL.Position = UDim2.new(0.5, -150, 0, 180); rL.Text = "Aura Range: "..ka_range; rL.TextColor3 = Color3.new(1, 1, 1); rL.BackgroundTransparency = 1
+
+local SB = Instance.new("Frame", Main)
+SB.Size = UDim2.new(0, 260, 0, 8); SB.Position = UDim2.new(0.5, -130, 0, 210); SB.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+local SK = Instance.new("TextButton", SB)
+SK.Size = UDim2.new(0, 20, 0, 20); SK.Position = UDim2.new(0, 0, 0.5, -10); SK.Text = ""; Instance.new("UICorner", SK).CornerRadius = UDim.new(1, 0)
+
+-- [ 4. Logic Loops ]
+task.spawn(function()
+    while task.wait(0.1) do
+        sL.Text = "Speed: [" .. ws_value .. "]"
+        jL.Text = "Jump: [" .. jp_value .. "]"
+        
+        if ka_on then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChildOfClass("Tool") then
+                for _, v in pairs(workspace:GetChildren()) do
+                    if v:FindFirstChild("Humanoid") and v ~= char and v.Humanoid.Health > 0 then
+                        local root = v:FindFirstChild("HumanoidRootPart")
+                        if root and (char.HumanoidRootPart.Position - root.Position).Magnitude <= ka_range then
+                            hitRemote:FireServer(v.Humanoid)
+                        end
+                    end
                 end
             end
         end
-    end)
-end)
 
-PSection:NewToggle("กันเจ็บจากการตก (No Fall)", "โดดลงจากที่สูงเลือดไม่ลด", function(state)
-    Configs.NoFall = state
-end)
-
-PSection:NewButton("ปุ่มตกใจ (Panic Button) ⚠️", "รีเซ็ตทุกอย่างเป็นปกติทันที", function()
-    Configs.Speed = 16
-    Configs.GhostMode = false
-    Configs.ESP_Enabled = false
-    Notify("PANIC!", "ระบบหยุดทำงานชั่วคราวเพื่อความเนียน")
-end)
-
--- [[ 2. COMBAT & SURVIVOR HUB ]] --
-local CombatTab = Window:NewTab("ต่อสู้ (Combat)")
-local CSection = CombatTab:NewSection("Survivor Hub & Auto Farm")
-
-CSection:NewButton("เปิดระบบ Survivor Hub", "เรียกใช้สคริปต์ตีซอมบี้จากลิงก์ GitHub", function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/chatrchnkphilaphangnga210-ui/Ball-td-Script/refs/heads/main/Survivor_Hub.lua"))()
-    Notify("SUCCESS", "เชื่อมต่อ Survivor Hub เรียบร้อย!")
-end)
-
-CSection:NewToggle("วิถีธนูย้อย 🏹", "คำนวณจุดตกอัตโนมัติ", function(state) end)
-CSection:NewToggle("วงรัศมีระเบิด (Dive Bomb)", "แสดงระยะทำลายล้าง", function(state) end)
-
--- [[ 3. VISUAL & ESP (แยกสี 🟢⚪🔴🟣) ]] --
-local ESPTab = Window:NewTab("มองทะลุ (ESP)")
-local ESection = ESPTab:NewSection("แยกประเภท: 🟢คน / ⚪ระเบิด / 🔴ธนู / 🟣ขุด")
-
-ESection:NewToggle("เปิดใช้งาน ESP อัจฉริยะ", "มองทะลุกำแพงแบบแยกสี", function(state)
-    Configs.ESP_Enabled = state
-end)
-
-ESection:NewToggle("เปิดแสงสว่าง (Full Bright) ☀️", "ปิดหมอกและที่มืด", function(state)
-    Configs.FullBright = state
-    if state then 
-        Lighting.Brightness = 2 
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 999999
-    else 
-        Lighting.Brightness = 1 
-        Lighting.ClockTime = 12
-    end
-end)
-
--- [[ 4. AI BEHAVIOR (ระบบสมองกล) ]] --
-local AITab = Window:NewTab("สมองกล AI (Spy Brain)")
-local AISect = AITab:NewSection("ระบบสแกนนิสัยผู้เล่น 🕵️")
-
-local function RunAIScan()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (p.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-            local tool = p.Character:FindFirstChildOfClass("Tool")
-            
-            if tool and dist < 40 then
-                Configs.BehaviorTags.Aggressive[p.Name] = true
-                print("AI Warning: Aggressive Target Detected -> " .. p.Name)
-            end
-        end
-    end
-end
-
-AISect:NewToggle("เปิดระบบ AI สแกนนิสัย 🔴🟢", "วิเคราะห์พฤติกรรมคนรอบข้าง", function(state)
-    Configs.AIScan = state
-    spawn(function()
-        while Configs.AIScan do
-            RunAIScan()
-            wait(2)
-        end
-    end)
-end)
-
-AISect:NewButton("หาจุดแอบที่ดีที่สุด (Find Hiding Spot)", "คำนวณจุดอับสายตาจาก Raycast", function()
-    Notify("AI", "กำลังคำนวณหาที่ซ่อนที่ดีที่สุด...")
-end)
-
--- [[ 5. CONFIG & 3-SLOTS (ระบบเซฟ) ]] --
-local ConfigTab = Window:NewTab("ตั้งค่า (Config)")
-local SSection = ConfigTab:NewSection("Slot Memory 🎰")
-
-for i = 1, 3 do
-    SSection:NewButton("Slot "..i.." [ SAVE ]", "บันทึกค่าลงสล็อต "..i, function() SaveToSlot(i) end)
-    SSection:NewButton("Slot "..i.." [ LOAD ]", "โหลดค่าจากสล็อต "..i, function() LoadFromSlot(i) end)
-end
-
-local ProtectSection = ConfigTab:NewSection("ความปลอดภัย & กันแบน 🛡️")
-
-ProtectSection:NewToggle("Anti-AFK & Anti-Kick", "กันหลุดจากการยืนนิ่ง", function(state)
-    if state then
-        LocalPlayer.Idled:Connect(function()
-            game:GetService("VirtualUser"):CaptureController()
-            game:GetService("VirtualUser"):ClickButton2(Vector2.new())
-        end)
-    end
-end)
-
-ProtectSection:NewToggle("Black Screen (ประหยัดแบต)", "หลอกว่าออนไลน์แต่ปิดภาพ", function(state)
-    RunService:Set3dRenderingEnabled(not state)
-end)
-
-ProtectSection:NewToggle("เกราะกันแบน (Anti-Ban Shield)", "พรางตัวจากการตรวจจับ", function(state) end)
-
--- [[ THE SPY ORB 🕵️‍♂️ DYNAMIC GUI ]] --
-local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
-local Orb = Instance.new("ImageButton", ScreenGui)
-Orb.Name = "NammonSpyOrb"
-Orb.Size = UDim2.new(0, 65, 0, 65)
-Orb.Position = UDim2.new(0, 25, 0.5, 0)
-Orb.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-Orb.Image = "rbxassetid://6031289353"
-Orb.Draggable = true
-
-local UICorner = Instance.new("UICorner", Orb)
-UICorner.CornerRadius = UDim.new(1, 0)
-
-local UIStroke = Instance.new("UIStroke", Orb)
-UIStroke.Thickness = 5
-UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-RunService.RenderStepped:Connect(function()
-    UIStroke.Color = GetRGB() -- ไฟขอบ RGB วิ่งวน
-    Orb.Rotation = Orb.Rotation + 1 -- ลูกแก้วหมุน
-end)
-
-Orb.MouseButton1Click:Connect(function()
-    for _, v in pairs(game.CoreGui:GetChildren()) do
-        if v.Name == "NAMMON SPY v1.0" and v:IsA("ScreenGui") then
-            v.Enabled = not v.Enabled
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = ws_value
+            LocalPlayer.Character.Humanoid.JumpPower = jp_value
         end
     end
 end)
 
-Notify("NAMMON SPY", "ระบบพร้อมลุย 300+ บรรทัดโหลดเสร็จสิ้น! 🕵️‍♂️🔥")
-print("NAMMON SPY v1.0: THE MASTER SOURCE IS ACTIVE!")
+-- Slider Drag
+local dragS = false
+SK.MouseButton1Down:Connect(function() dragS = true end)
+UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragS = false end end)
+UserInputService.InputChanged:Connect(function(i)
+    if dragS and i.UserInputType == Enum.UserInputType.MouseMovement then
+        local p = math.clamp((i.Position.X - SB.AbsolutePosition.X) / SB.AbsoluteSize.X, 0, 1)
+        SK.Position = UDim2.new(p, -10, 0.5, -10)
+        ka_range = math.floor(1 + (p * 499))
+        rL.Text = "Aura Range: " .. ka_range
+    end
+end)
+
+-- Orb & RGB
+Orb.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
+task.spawn(function() while task.wait() do OrbStroke.Color = Color3.fromHSV(tick()%5/5, 1, 1) end end)
+
+-- Draggable
+local oD, oS, oP
+Orb.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then oD = true oS = i.Position oP = Orb.Position end end)
+UserInputService.InputChanged:Connect(function(i) if oD and i.UserInputType == Enum.UserInputType.MouseMovement then
+    local d = i.Position - oS
+    Orb.Position = UDim2.new(oP.X.Scale, oP.X.Offset + d.X, oP.Y.Scale, oP.Y.Offset + d.Y)
+end end)
+Orb.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then oD = false end end)
