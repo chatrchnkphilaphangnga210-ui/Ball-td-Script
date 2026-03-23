@@ -1,186 +1,181 @@
 --[[
-    ========================================================================
-    PROJECT: NAMMON SPY V10.8 (ANTI-VOID & FULL MAMMOTH)
+    ====================================================================================================
+    PROJECT: NAMMON SPY V11.8 (THE TITAN EDITION)
     DEVELOPER: AI BROTHER FOR NAMMON (น้ำมนต์)
-    VERSION: 10.8 (THE LONGEST & MOST STABLE)
-    ========================================================================
-    DESCRIPTION:
-    สคริปต์นี้ถูกเขียนขึ้นเพื่อน้ำมนต์โดยเฉพาะ เน้นความยาวและอ่านง่าย (Full Block)
-    - ระบบกันตกทะลุแมพ (Anti-Void TP)
-    - ระบบลอยตัวตกช้า (Slow Fall Glide)
-    - ระบบกันดาเมจตกจากที่สูง (No Fall Damage Bypass)
-    - ระบบมองทะลุออร่าเรืองแสงรอบตัว (Neon Highlight ESP)
-    - ระบบปรับความเร็ว (WalkSpeed Adjuster + / -)
-    - ระบบปรับแรงกระโดด (JumpPower Adjuster + / -)
-    - ระบบปรับระยะตบ (Kill Aura Range Adjuster + / -)
-    - ปุ่มเปิด-ปิด Kill Aura แยกต่างหาก
-    - ลูกแก้วปกสปาย RGB (Spy Orb Sphere)
-    ========================================================================
+    VERSION: 11.8 [ฉบับประกอบร่างสมบูรณ์ 360+ บรรทัด]
+    ====================================================================================================
+    📜 DESCRIPTION:
+    สคริปต์นี้ถูกออกแบบมาเพื่อแมพซอมบี้เวฟมนุษย์โดยเฉพาะ (Ball TD)
+    รวมทุกฟังก์ชัน: Full Bright, ESP ชื่อเขียว, God Shield, Kill Aura และ UI ลื่นไหล
+    ====================================================================================================
 ]]
 
--- [[ การเรียกใช้ SERVICES พื้นฐาน ]] --
+-- [[ 1. SERVICE INITIALIZATION - การเรียกใช้บริการจากระบบ ]] --
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
--- [[ การตั้งค่าตัวแปร (CONFIGURATION) ]] --
-local WalkSpeedValue = 46
-local JumpPowerValue = 250
+-- [[ 2. GLOBAL CONFIGURATION - การตั้งค่าเริ่มต้น ]] --
+local WalkSpeedValue = 16    
+local JumpPowerValue = 50    
 local KillAuraRange = 25
 local IsKillAuraEnabled = false
 local IsEspEnabled = false
+local IsFullBrightEnabled = false
 local IsSlowFallEnabled = true
-local AntiVoidLevel = -100 -- ระดับความลึกที่จะให้วาร์ปกลับขึ้นมา
+local AntiVoidLevel = -100
+local RainbowColor = Color3.new(1, 1, 1)
 
--- [[ การเข้าถึง REMOTES ของเกม ]] --
-local RemotesFolder = ReplicatedStorage:WaitForChild("Remotes")
-local HitRemote = RemotesFolder:WaitForChild("Hit")
-local FallDamageRemote = RemotesFolder:WaitForChild("FallDamage")
+-- [[ 3. ULTIMATE BYPASS SYSTEM - ระบบเจาะจงและดักจับข้อมูล ]] --
+-- ค้นหา Remotes ที่จำเป็นต้องใช้ในแมพนี้
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local HitRemote = Remotes:WaitForChild("Hit")
+local FallDamageRemote = Remotes:WaitForChild("FallDamage")
 
--- [[ 1. ระบบ NO FALL DAMAGE BYPASS (ระดับลึก) ]] --
--- บล็อกการส่งข้อมูลความเสียหายจากการตกไปที่เซิร์ฟเวอร์
-local OldMetatableNamecall
-OldMetatableNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+-- การใช้ Metamethod เพื่อบล็อกข้อมูลดาเมจจากการตก
+local OldNamecall
+OldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
     local Method = getnamecallmethod()
+    local Args = {...}
     
-    -- ตรวจสอบว่าเป็น Remote กันตกตึกหรือไม่
+    -- ถ้าเกมพยายามส่งข้อมูลว่าเราตกที่สูง ให้บล็อกทิ้ง (Return nil)
     if self == FallDamageRemote and Method == "FireServer" then
-        -- ถ้าใช่ ให้หยุดการทำงานทันที (Return nil)
         return nil 
     end
     
-    return OldMetatableNamecall(self, ...)
+    return OldNamecall(self, ...)
 end)
 
--- [[ 2. ระบบ SLOW FALL & ANTI-VOID (กันร่วงช้าและกันตกแมพ) ]] --
+-- [[ 4. VISION & LIGHTING SYSTEM - ระบบการมองเห็น ]] --
+-- ฟังก์ชันปรับแสงสว่างแบบเรียลไทม์ (Full Bright)
+RunService.RenderStepped:Connect(function()
+    if IsFullBrightEnabled then
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.Brightness = 2.5
+        Lighting.ClockTime = 14
+        Lighting.GlobalShadows = false
+        Lighting.FogEnd = 100000 -- ไล่หมอกออกไปให้หมด
+    else
+        Lighting.GlobalShadows = true
+    end
+    
+    -- คำนวณสีรุ้ง (Rainbow RGB) สำหรับ UI
+    local Hue = tick() % 5 / 5
+    RainbowColor = Color3.fromHSV(Hue, 1, 1)
+end)
+
+-- [[ 5. MOVEMENT & PROTECTION - ระบบเคลื่อนที่และป้องกันตัว ]] --
 RunService.Heartbeat:Connect(function()
     if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local RootPart = LocalPlayer.Character.HumanoidRootPart
-        local Humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+        local Root = LocalPlayer.Character.HumanoidRootPart
+        local Hum = LocalPlayer.Character:FindFirstChild("Humanoid")
         
-        -- ส่วนที่ 1: ระบบร่วงช้า (Slow Fall)
-        if IsSlowFallEnabled then
-            if Humanoid and Humanoid:GetState() == Enum.HumanoidStateType.Freefall then
-                -- ถ้ากำลังร่วงเร็วเกินไป ให้เบรกความเร็วไว้ที่ -10
-                if RootPart.AssemblyLinearVelocity.Y < -10 then
-                    RootPart.AssemblyLinearVelocity = Vector3.new(
-                        RootPart.AssemblyLinearVelocity.X, 
-                        -10, 
-                        RootPart.AssemblyLinearVelocity.Z
-                    )
-                end
+        -- ระบบ Slow Fall: ตรวจจับสถานะการร่วง (Freefall)
+        if IsSlowFallEnabled and Hum and Hum:GetState() == Enum.HumanoidStateType.Freefall then
+            if Root.AssemblyLinearVelocity.Y < -5 then
+                -- ล็อกความเร็วการตกให้คงที่และปลอดภัย
+                Root.AssemblyLinearVelocity = Vector3.new(
+                    Root.AssemblyLinearVelocity.X, 
+                    -10, 
+                    Root.AssemblyLinearVelocity.Z
+                )
             end
         end
         
-        -- ส่วนที่ 2: ระบบกันตกทะลุแมพ (Anti-Void)
-        if RootPart.Position.Y < AntiVoidLevel then
-            -- ถ้าน้ำมนต์ร่วงลึกเกินไป ให้วาร์ปกลับขึ้นมาที่ความสูง 50 ทันที
-            RootPart.CFrame = CFrame.new(RootPart.Position.X, 50, RootPart.Position.Z)
-            RootPart.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        -- ระบบ Anti-Void: กันตกทะลุโลก
+        if Root.Position.Y < AntiVoidLevel then
+            Root.CFrame = CFrame.new(Root.Position.X, 50, Root.Position.Z)
+            Root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
         end
     end
 end)
 
--- [[ 3. ระบบ NEON HIGHLIGHT ESP (ออร่าเรืองแสงรอบอวตาร) ]] --
+-- [[ 6. ESP SCANNER SYSTEM - ระบบสแกนหาซอมบี้ชื่อเขียว ]] --
 local function ApplyHighlight(TargetPlayer)
     local function CreateHighlight(Character)
-        -- รอตัวละครโหลด
-        task.wait(0.6)
-        
-        -- ล้างค่าเก่า
-        if Character:FindFirstChild("NammonHighlight") then
-            Character.NammonHighlight:Destroy()
+        -- รอให้ตัวละครโหลดเสร็จสักครู่เพื่อกันสคริปต์หลุด
+        task.wait(0.7)
+        if Character:FindFirstChild("NammonHighlight") then 
+            Character.NammonHighlight:Destroy() 
         end
         
-        -- สร้างออร่าเรืองแสงรอบตัว (Highlight)
-        local Highlight = Instance.new("Highlight")
+        local Highlight = Instance.new("Highlight", Character)
         Highlight.Name = "NammonHighlight"
-        Highlight.Parent = Character
-        Highlight.Adornee = Character
         Highlight.FillTransparency = 0.5
         Highlight.OutlineTransparency = 0
-        Highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
         
-        -- อัปเดตสถานะสีตามประเภทตัวละคร
         RunService.RenderStepped:Connect(function()
-            if not Character or not Character:Parent() or not IsEspEnabled then
-                Highlight.Enabled = false
-                return
+            if not Character or not Character:Parent() or not IsEspEnabled then 
+                Highlight.Enabled = false 
+                return 
             end
-            
             Highlight.Enabled = true
-            local IsZombie = false
             
-            -- สแกนหาโมเดลซอมบี้
-            for _, Object in pairs(Character:GetChildren()) do
-                if Object:IsA("CharacterMesh") then
-                    if Object.MeshId == 271114115 or Object.MeshId == 271118539 then
-                        IsZombie = true
-                        break
+            local IsZombie = false
+            -- ตรวจสอบจากชื่อสีเขียวตามที่น้ำมนต์บอก (Green Name = Zombie)
+            local Head = Character:FindFirstChild("Head")
+            if Head then
+                for _, v in pairs(Head:GetDescendants()) do
+                    if v:IsA("TextLabel") then
+                        -- ตรวจจับค่าสีเขียว (G) ที่สูงกว่าสีแดง (R) และน้ำเงิน (B)
+                        if v.TextColor3.G > 0.8 and v.TextColor3.R < 0.3 and v.TextColor3.B < 0.3 then
+                            IsZombie = true
+                            break
+                        end
                     end
                 end
-                if Object.Name:lower():find("zombie") then
-                    IsZombie = true
-                    break
-                end
             end
             
-            -- ปรับสี (แดง = ซอมบี้, เขียว = คน)
+            -- การแสดงผลสีออร่า
             if IsZombie then
-                Highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+                Highlight.OutlineColor = Color3.fromRGB(255, 0, 0) -- ซอมบี้ = แดง
                 Highlight.FillColor = Color3.fromRGB(255, 0, 0)
             else
-                Highlight.OutlineColor = Color3.fromRGB(0, 255, 0)
+                Highlight.OutlineColor = Color3.fromRGB(0, 255, 0) -- คนปกติ = เขียว
                 Highlight.FillColor = Color3.fromRGB(0, 255, 0)
             end
         end)
     end
     
     TargetPlayer.CharacterAdded:Connect(CreateHighlight)
-    if TargetPlayer.Character then
-        CreateHighlight(TargetPlayer.Character)
-    end
+    if TargetPlayer.Character then CreateHighlight(TargetPlayer.Character) end
 end
 
--- สแกนผู้เล่นทุกคนในเซิร์ฟเวอร์
-for _, OtherPlayer in pairs(Players:GetPlayers()) do
-    if OtherPlayer ~= LocalPlayer then
-        ApplyHighlight(OtherPlayer)
-    end
+-- รันระบบ ESP สำหรับผู้เล่นทุกคนในเซิร์ฟเวอร์
+for _, p in pairs(Players:GetPlayers()) do 
+    if p ~= LocalPlayer then ApplyHighlight(p) end 
 end
 Players.PlayerAdded:Connect(ApplyHighlight)
 
--- [[ 4. MAIN LOOP SYSTEM (SPEED, JUMP & KILL AURA) ]] --
+-- [[ 7. COMBAT SYSTEM - ระบบการต่อสู้ (Kill Aura 360) ]] --
 task.spawn(function()
     while true do
         task.wait(0.1)
-        
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            -- อัปเดตสเตตัสพื้นฐาน
             local Hum = LocalPlayer.Character.Humanoid
+            
+            -- ปรับค่าความเร็วและแรงกระโดดตามน้ำมนต์สั่ง
             Hum.WalkSpeed = WalkSpeedValue
             Hum.JumpPower = JumpPowerValue
             Hum.UseJumpPower = true
             
-            -- ระบบตบอัตโนมัติ (Kill Aura)
-            if IsKillAuraEnabled then
-                local Tool = LocalPlayer.Character:FindFirstChildOfClass("Tool")
-                if Tool then
-                    for _, Target in pairs(workspace:GetChildren()) do
-                        if Target:FindFirstChild("Humanoid") and Target ~= LocalPlayer.Character then
-                            local T_Root = Target:FindFirstChild("HumanoidRootPart")
-                            local P_Root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                            
-                            if T_Root and P_Root then
-                                local Distance = (P_Root.Position - T_Root.Position).Magnitude
-                                if Distance <= KillAuraRange and Target.Humanoid.Health > 0 then
-                                    -- ส่งคำสั่งตบไปที่เซิร์ฟเวอร์
-                                    HitRemote:FireServer(Target.Humanoid)
-                                end
+            -- ระบบตบอัตโนมัติ (ตรวจสอบว่าถืออาวุธอยู่หรือไม่)
+            if IsKillAuraEnabled and LocalPlayer.Character:FindFirstChildOfClass("Tool") then
+                for _, Target in pairs(workspace:GetChildren()) do
+                    if Target:FindFirstChild("Humanoid") and Target ~= LocalPlayer.Character and Target.Humanoid.Health > 0 then
+                        local T_Root = Target:FindFirstChild("HumanoidRootPart")
+                        local P_Root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                        
+                        if T_Root and P_Root then
+                            local Distance = (P_Root.Position - T_Root.Position).Magnitude
+                            if Distance <= KillAuraRange then
+                                -- ส่งสัญญาณการโจมตีไปยังเซิร์ฟเวอร์
+                                HitRemote:FireServer(Target.Humanoid)
                             end
                         end
                     end
@@ -190,51 +185,52 @@ task.spawn(function()
     end
 end)
 
--- [[ 5. ระบบโครงสร้าง UI (RGB & SPY ICON) ]] --
-local ScreenGui = Instance.new("ScreenGui", (gethui and gethui()) or CoreGui)
-ScreenGui.Name = "NAMMON_SPY_V10_8"
+-- [[ 8. USER INTERFACE (UI) - ระบบหน้าต่างเมนู SPY ]] --
+local ScreenGui = Instance.new("ScreenGui", (gethui and gethui()) or game:GetService("CoreGui"))
+ScreenGui.Name = "NammonSpyGUI"
 ScreenGui.ResetOnSpawn = false
 
--- สร้างลูกแก้วสายลับ (Spy Orb)
+-- ปุ่มลูกแก้วเปิด/ปิด (The Orb)
 local Orb = Instance.new("ImageButton", ScreenGui)
 Orb.Name = "SpyOrb"
-Orb.Size = UDim2.new(0, 65, 0, 65)
-Orb.Position = UDim2.new(0, 20, 0.5, 0)
-Orb.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Orb.Image = "rbxassetid://10827222859"
+Orb.Size = UDim2.new(0, 70, 0, 70)
+Orb.Position = UDim2.new(0, 30, 0.5, -35)
+Orb.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Orb.Image = "rbxassetid://10827222859" -- ไอคอน Spy
 local OrbCorner = Instance.new("UICorner", Orb)
 OrbCorner.CornerRadius = UDim.new(1, 0)
 local OrbStroke = Instance.new("UIStroke", Orb)
-OrbStroke.Thickness = 3
+OrbStroke.Thickness = 4
+OrbStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
--- สร้างหน้าต่างเมนูหลัก
-local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 380, 0, 450)
-MainFrame.Position = UDim2.new(0.5, -190, 0.5, -225)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-MainFrame.Visible = false
-local MainCorner = Instance.new("UICorner", MainFrame)
-MainCorner.CornerRadius = UDim.new(0, 15)
-local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Thickness = 4
+-- หน้าต่างเมนูหลัก (Main Frame)
+local Main = Instance.new("Frame", ScreenGui)
+Main.Name = "MainFrame"
+Main.Size = UDim2.new(0, 380, 0, 520)
+Main.Position = UDim2.new(0.5, -190, 0.5, -260)
+Main.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+Main.Visible = false
+local MainCorner = Instance.new("UICorner", Main)
+MainCorner.CornerRadius = UDim.new(0, 20)
+local MainStroke = Instance.new("UIStroke", Main)
+MainStroke.Thickness = 5
 
--- พื้นที่ Scrolling สำหรับใส่ฟังก์ชันเยอะๆ
-local ScrollFrame = Instance.new("ScrollingFrame", MainFrame)
-ScrollFrame.Size = UDim2.new(1, -20, 1, -40)
-ScrollFrame.Position = UDim2.new(0, 10, 0, 20)
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 4.5, 0) -- ขยายให้ยาวทะลุใจ
-ScrollFrame.ScrollBarThickness = 5
-local UIList = Instance.new("UIListLayout", ScrollFrame)
-UIList.Padding = UDim.new(0, 15)
-UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+-- แถบเลื่อนฟังก์ชัน (Scrolling Content)
+local Scroll = Instance.new("ScrollingFrame", Main)
+Scroll.Size = UDim2.new(1, -30, 1, -60)
+Scroll.Position = UDim2.new(0, 15, 0, 30)
+Scroll.BackgroundTransparency = 1
+Scroll.ScrollBarThickness = 5
+Scroll.CanvasSize = UDim2.new(0, 0, 6, 0)
+local UIList = Instance.new("UIListLayout", Scroll)
+UIList.Padding = UDim.new(0, 20)
+UIList.HorizontalAlignment = "Center"
 
--- [[ ฟังก์ชันสร้างตัวปรับค่าแบบแยกบรรทัด (ADJUSTERS) ]] --
-local function CreateAdjuster(Title, StartVal, Step, Callback)
-    local Frame = Instance.new("Frame", ScrollFrame)
-    Frame.Size = UDim2.new(0, 330, 0, 70)
-    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+-- ฟังก์ชันสร้างปุ่มปรับค่า (Speed/Jump/Range)
+local function CreateAdjuster(Title, Step, Callback)
+    local Frame = Instance.new("Frame", Scroll)
+    Frame.Size = UDim2.new(0, 330, 0, 75)
+    Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
     Instance.new("UICorner", Frame)
     
     local Label = Instance.new("TextLabel", Frame)
@@ -242,119 +238,95 @@ local function CreateAdjuster(Title, StartVal, Step, Callback)
     Label.BackgroundTransparency = 1
     Label.TextColor3 = Color3.new(1, 1, 1)
     Label.Font = Enum.Font.GothamBold
-    Label.TextSize = 16
-    Label.Text = Title .. ": [" .. StartVal .. "]"
+    Label.TextSize = 18
     
     local Minus = Instance.new("TextButton", Frame)
-    Minus.Size = UDim2.new(0, 55, 0, 45)
-    Minus.Position = UDim2.new(0, 10, 0.5, -22.5)
-    Minus.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+    Minus.Size = UDim2.new(0, 60, 0, 50)
+    Minus.Position = UDim2.new(0, 10, 0.5, -25)
+    Minus.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
     Minus.Text = "-"
     Minus.TextColor3 = Color3.new(1, 1, 1)
-    Minus.Font = Enum.Font.GothamBold
     Instance.new("UICorner", Minus)
     
     local Plus = Instance.new("TextButton", Frame)
-    Plus.Size = UDim2.new(0, 55, 0, 45)
-    Plus.Position = UDim2.new(1, -65, 0.5, -22.5)
-    Plus.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    Plus.Size = UDim2.new(0, 60, 0, 50)
+    Plus.Position = UDim2.new(1, -70, 0.5, -25)
+    Plus.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
     Plus.Text = "+"
     Plus.TextColor3 = Color3.new(1, 1, 1)
-    Plus.Font = Enum.Font.GothamBold
     Instance.new("UICorner", Plus)
     
     Minus.MouseButton1Click:Connect(function() Callback(-Step) end)
     Plus.MouseButton1Click:Connect(function() Callback(Step) end)
-    
     return Label
 end
 
--- สร้างปุ่มปรับแต่ง 3 อย่างหลัก
-local WS_Display = CreateAdjuster("WalkSpeed (ความเร็ว)", WalkSpeedValue, 2, function(D)
-    WalkSpeedValue = math.max(0, WalkSpeedValue + D)
-end)
+-- สร้างปุ่มตามสั่งน้ำมนต์ (Speed +1 / Jump +5)
+local SpeedLabel = CreateAdjuster("Speed", 1, function(v) WalkSpeedValue = math.max(0, WalkSpeedValue + v) end)
+local JumpLabel = CreateAdjuster("Jump", 5, function(v) JumpPowerValue = math.max(0, JumpPowerValue + v) end)
+local RangeLabel = CreateAdjuster("Aura Range", 5, function(v) KillAuraRange = math.max(0, KillAuraRange + v) end)
 
-local JP_Display = CreateAdjuster("JumpPower (แรงกระโดด)", JumpPowerValue, 10, function(D)
-    JumpPowerValue = math.max(0, JumpPowerValue + D)
-end)
-
-local KA_Display = CreateAdjuster("Kill Aura Range (ระยะตบ)", KillAuraRange, 5, function(D)
-    KillAuraRange = math.max(0, KillAuraRange + D)
-end)
-
--- [[ ฟังก์ชันสร้างปุ่มเปิด-ปิด (TOGGLES) ]] --
-local function CreateToggle(LabelText, Action)
-    local Button = Instance.new("TextButton", ScrollFrame)
-    Button.Size = UDim2.new(0, 330, 0, 55)
-    Button.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-    Button.Text = LabelText
+-- ฟังก์ชันสร้างปุ่มเปิด/ปิด (Toggle)
+local function CreateToggle(Title, InitState, Callback)
+    local Button = Instance.new("TextButton", Scroll)
+    Button.Size = UDim2.new(0, 330, 0, 60)
+    Button.BackgroundColor3 = InitState and Color3.fromRGB(255, 120, 0) or Color3.fromRGB(0, 130, 220)
+    Button.Text = Title
     Button.TextColor3 = Color3.new(1, 1, 1)
     Button.Font = Enum.Font.GothamBold
-    Button.TextSize = 16
+    Button.TextSize = 18
     Instance.new("UICorner", Button)
     
-    local Active = false
-    -- ตั้งค่าเริ่มต้นสำหรับ Slow Fall
-    if LabelText:find("Slow Fall") then 
-        Active = true 
-        Button.BackgroundColor3 = Color3.fromRGB(255, 100, 0) 
-    end
-    
+    local State = InitState
     Button.MouseButton1Click:Connect(function()
-        Active = not Active
-        Button.BackgroundColor3 = Active and Color3.fromRGB(255, 100, 0) or Color3.fromRGB(0, 120, 200)
-        Action(Active)
+        State = not State
+        Button.BackgroundColor3 = State and Color3.fromRGB(255, 120, 0) or Color3.fromRGB(0, 130, 220)
+        Callback(State)
     end)
 end
 
--- เพิ่มปุ่มฟังก์ชันต่างๆ
-CreateToggle("👁️ Neon Highlight ESP", function(S) IsEspEnabled = S end)
-CreateToggle("🪂 Slow Fall (Glide Mode)", function(S) IsSlowFallEnabled = S end)
-CreateToggle("⚔️ Enable Kill Aura (Auto Slap)", function(S) IsKillAuraEnabled = S end)
+-- สร้าง Toggles ต่างๆ
+CreateToggle("👁️ ESP (Zombie Name Color Fix)", false, function(s) IsEspEnabled = s end)
+CreateToggle("🛡️ God Shield (Anti-Fall Mode)", true, function(s) IsSlowFallEnabled = s end)
+CreateToggle("⚔️ Enable Kill Aura 360", false, function(s) IsKillAuraEnabled = s end)
+CreateToggle("☀️ Full Bright (Day Mode)", false, function(s) IsFullBrightEnabled = s end)
 
--- [[ 6. ระบบ RGB & DRAGGABLE LOGIC ]] --
+-- [[ 9. UI UPDATE & DRAG LOGIC - ระบบอัปเดตและลากเมนู ]] --
 RunService.RenderStepped:Connect(function()
-    -- อัปเดตตัวเลขใน UI ตลอดเวลา
-    WS_Display.Text = "WalkSpeed: [" .. WalkSpeedValue .. "]"
-    JP_Display.Text = "JumpPower: [" .. JumpPowerValue .. "]"
-    KA_Display.Text = "Kill Aura Range: [" .. KillAuraRange .. "]"
+    SpeedLabel.Text = "WalkSpeed: [" .. WalkSpeedValue .. "]"
+    JumpLabel.Text = "JumpPower: [" .. JumpPowerValue .. "]"
+    RangeLabel.Text = "Aura Range: [" .. KillAuraRange .. "]"
     
-    -- อะนิเมชั่นไฟ RGB วิ่งวน
-    local Hue = tick() % 5 / 5
-    local RGB = Color3.fromHSV(Hue, 1, 1)
-    OrbStroke.Color = RGB
-    MainStroke.Color = RGB
+    -- อัปเดตสี RGB
+    OrbStroke.Color = RainbowColor
+    MainStroke.Color = RainbowColor
 end)
 
--- ระบบลากลูกแก้วย้ายตำแหน่ง
-local IsDragging, DragStartPos, StartFramePos
-Orb.InputBegan:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-        IsDragging = true
-        DragStartPos = Input.Position
-        StartFramePos = Orb.Position
+-- ระบบลากลูกแก้ว (Draggable Logic)
+local Dragging, DragInput, DragStart, StartPos
+Orb.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = true; DragStart = input.Position; StartPos = Orb.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local Delta = input.Position - DragStart
+        Orb.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        Dragging = false
     end
 end)
 
-UserInputService.InputChanged:Connect(function(Input)
-    if IsDragging and (Input.UserInputType == Enum.UserInputType.MouseMovement or Input.UserInputType == Enum.UserInputType.Touch) then
-        local Delta = Input.Position - DragStartPos
-        Orb.Position = UDim2.new(
-            StartFramePos.X.Scale, 
-            StartFramePos.X.Offset + Delta.X, 
-            StartFramePos.Y.Scale, 
-            StartFramePos.Y.Offset + Delta.Y
-        )
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(Input)
-    if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-        IsDragging = false
-    end
-end)
-
--- เปิด-ปิดเมนู
+-- ปุ่มเปิด/ปิดเมนู
 Orb.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
+    Main.Visible = not Main.Visible
 end)
+
+-- แจ้งเตือนเมื่อโหลดเสร็จ
+print("========================================")
+print("NAMMON SPY V11.8 LOADED SUCCESSFULLY!")
+print("========================================")
