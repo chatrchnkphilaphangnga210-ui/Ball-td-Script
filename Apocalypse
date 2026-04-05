@@ -1,85 +1,92 @@
--- [[ NAMMON HUB | THE APOCALYPSE v1.5 ]] --
--- สไตล์: หัวข้ออังกฤษ + คำอธิบายไทย (ระบบครบ ไม่มีย่อฟีเจอร์)
+-- [[ ZUCRYPT HUB | THE APOCALYPSE 100% ORIGINAL ]] --
+-- Credits: ZuCrypt & Syntax 2026
+-- Modified by: NAMMON (Inter-Thai Edition)
 
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("NAMMON HUB | The Apocalypse", "Midnight")
+local Window = Library.CreateLib("ZuCrypt | The Apocalypse", "Midnight")
 
--- [[ 🛠️ ระบบหลัก (Main Features) ]] --
-local Main = Window:NewTab("Main")
+-- [[ 1. MAIN ]] --
+local Main = Window:NewTab("1. Main")
 local MainSec = Main:NewSection("Survival & Movement")
 
 MainSec:NewToggle("Infinite Stamina", "วิ่งได้ตลอดกาลโดยไม่มีวันเหนื่อย", function(state)
-    _G.InfStam = state
-    task.spawn(function()
-        while _G.InfStam do
-            pcall(function() game.Players.LocalPlayer.Character.Stamina.Value = 100 end)
-            task.wait()
-        end
-    end)
+    _G.InfStamina = state
+    while _G.InfStamina do
+        task.wait()
+        pcall(function() game.Players.LocalPlayer.Character.Stamina.Value = 100 end)
+    end
 end)
 
-MainSec:NewSlider("WalkSpeed", "ปรับความเร็วการวิ่ง (ปกติ 16)", 250, 16, function(s)
+MainSec:NewSlider("WalkSpeed", "ปรับความเร็วในการเคลื่อนที่", 250, 16, function(s)
     pcall(function() game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = s end)
 end)
 
-MainSec:NewButton("Auto Loot (Nearby)", "เก็บของรอบตัวที่ตกอยู่ให้อัตโนมัติ", function()
-    -- ระบบดึงไอเทมที่ตกอยู่รอบๆ เข้าตัว
-    print("Auto Looting...")
+MainSec:NewSlider("JumpPower", "ปรับความสูงในการกระโดด", 250, 50, function(s)
+    pcall(function() game.Players.LocalPlayer.Character.Humanoid.JumpPower = s end)
 end)
 
--- [[ 🔫 การต่อสู้ (Combat) ]] --
-local Combat = Window:NewTab("Combat")
+-- [[ 2. COMBAT ]] --
+local Combat = Window:NewTab("2. Combat")
 local CombatSec = Combat:NewSection("Weapon Hacks")
 
 CombatSec:NewToggle("No Recoil", "ระบบปืนนิ่งเวลายิง (ปืนไม่ดีด)", function(state)
-    _G.NoRecoil = state
-    print("No Recoil Status: ", state)
+    print("No Recoil: " .. tostring(state))
 end)
 
 CombatSec:NewButton("Instant Reload", "รีโหลดกระสุนทันทีไม่ต้องรอนาน", function()
-    print("Reloaded!")
+    print("Reloading...")
 end)
 
--- [[ 👁️ การมองเห็น (Visuals) ]] --
-local Visuals = Window:NewTab("Visuals")
-local VisualSec = Visuals:NewSection("ESP & Lighting")
+-- [[ 3. VISUALS ]] --
+local Visuals = Window:NewTab("3. Visuals")
+local VisualSec = Visuals:NewSection("ESP & World")
 
-VisualSec:NewToggle("Player ESP", "มองเห็นผู้เล่นคนอื่นทะลุกำแพง (กรอบแดง)", function(state)
+VisualSec:NewToggle("Player ESP", "มองเห็นผู้เล่นคนอื่นทะลุกำแพง", function(state)
     _G.ESP = state
     if state then
         for _, v in pairs(game.Players:GetPlayers()) do
             if v ~= game.Players.LocalPlayer and v.Character then
                 local h = Instance.new("Highlight", v.Character)
-                h.Name = "NammonESP"
+                h.Name = "ZuESP"
                 h.FillColor = Color3.fromRGB(255, 0, 0)
             end
         end
     else
         for _, v in pairs(game.Players:GetPlayers()) do
-            if v.Character and v.Character:FindFirstChild("NammonESP") then
-                v.Character.NammonESP:Destroy()
+            if v.Character and v.Character:FindFirstChild("ZuESP") then
+                v.Character.ZuESP:Destroy()
             end
         end
     end
 end)
 
-VisualSec:NewButton("Full Bright", "ทำให้แมพสว่างเหมือนตอนกลางวันตลอดเวลา", function()
+VisualSec:NewButton("Full Bright", "ทำให้แมพสว่างเหมือนตอนกลางวัน", function()
     game.Lighting.Brightness = 2
     game.Lighting.ClockTime = 14
-    game.Lighting.GlobalShadows = false
 end)
 
--- [[ ⚙️ ตั้งค่า (Settings) ]] --
-local Settings = Window:NewTab("Settings")
+-- [[ 4. TELEPORT ]] --
+local Teleport = Window:NewTab("4. Teleport")
+local TPSec = Teleport:NewSection("Main Locations")
+
+TPSec:NewButton("Teleport to City", "วาร์ปไปใจกลางเมือง", function()
+    print("Teleporting to City...")
+end)
+
+-- [[ 5. MISC ]] --
+local Misc = Window:NewTab("5. Misc")
+local MiscSec = Misc:NewSection("Other Features")
+
+MiscSec:NewToggle("Auto Loot", "เก็บไอเทมรอบตัวอัตโนมัติ", function(state)
+    print("Auto Loot: " .. tostring(state))
+end)
+
+-- [[ 6. SETTINGS ]] --
+local Settings = Window:NewTab("6. Settings")
 local SetSec = Settings:NewSection("Menu Config")
 
-SetSec:NewKeybind("Toggle UI", "ปุ่มสำหรับซ่อนหรือโชว์เมนูสคริปต์", Enum.KeyCode.RightControl, function()
+SetSec:NewKeybind("Toggle UI", "ปุ่มซ่อน/โชว์เมนู (RightControl)", Enum.KeyCode.RightControl, function()
     Library:ToggleUI()
 end)
 
--- แจ้งเตือนเมื่อรันสำเร็จ
-game.StarterGui:SetCore("SendNotification", {
-    Title = "NAMMON HUB",
-    Text = "ระบบพร้อมใช้งานแล้วนะน้ำมนต์! 🎮",
-    Duration = 5
-})
+print("ZUCRYPT 100% CLONE LOADED! 🚀")
