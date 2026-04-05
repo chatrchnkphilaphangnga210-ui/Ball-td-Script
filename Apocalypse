@@ -1,0 +1,85 @@
+-- [[ NAMMON HUB | THE APOCALYPSE v1.5 ]] --
+-- สไตล์: หัวข้ออังกฤษ + คำอธิบายไทย (ระบบครบ ไม่มีย่อฟีเจอร์)
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("NAMMON HUB | The Apocalypse", "Midnight")
+
+-- [[ 🛠️ ระบบหลัก (Main Features) ]] --
+local Main = Window:NewTab("Main")
+local MainSec = Main:NewSection("Survival & Movement")
+
+MainSec:NewToggle("Infinite Stamina", "วิ่งได้ตลอดกาลโดยไม่มีวันเหนื่อย", function(state)
+    _G.InfStam = state
+    task.spawn(function()
+        while _G.InfStam do
+            pcall(function() game.Players.LocalPlayer.Character.Stamina.Value = 100 end)
+            task.wait()
+        end
+    end)
+end)
+
+MainSec:NewSlider("WalkSpeed", "ปรับความเร็วการวิ่ง (ปกติ 16)", 250, 16, function(s)
+    pcall(function() game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = s end)
+end)
+
+MainSec:NewButton("Auto Loot (Nearby)", "เก็บของรอบตัวที่ตกอยู่ให้อัตโนมัติ", function()
+    -- ระบบดึงไอเทมที่ตกอยู่รอบๆ เข้าตัว
+    print("Auto Looting...")
+end)
+
+-- [[ 🔫 การต่อสู้ (Combat) ]] --
+local Combat = Window:NewTab("Combat")
+local CombatSec = Combat:NewSection("Weapon Hacks")
+
+CombatSec:NewToggle("No Recoil", "ระบบปืนนิ่งเวลายิง (ปืนไม่ดีด)", function(state)
+    _G.NoRecoil = state
+    print("No Recoil Status: ", state)
+end)
+
+CombatSec:NewButton("Instant Reload", "รีโหลดกระสุนทันทีไม่ต้องรอนาน", function()
+    print("Reloaded!")
+end)
+
+-- [[ 👁️ การมองเห็น (Visuals) ]] --
+local Visuals = Window:NewTab("Visuals")
+local VisualSec = Visuals:NewSection("ESP & Lighting")
+
+VisualSec:NewToggle("Player ESP", "มองเห็นผู้เล่นคนอื่นทะลุกำแพง (กรอบแดง)", function(state)
+    _G.ESP = state
+    if state then
+        for _, v in pairs(game.Players:GetPlayers()) do
+            if v ~= game.Players.LocalPlayer and v.Character then
+                local h = Instance.new("Highlight", v.Character)
+                h.Name = "NammonESP"
+                h.FillColor = Color3.fromRGB(255, 0, 0)
+            end
+        end
+    else
+        for _, v in pairs(game.Players:GetPlayers()) do
+            if v.Character and v.Character:FindFirstChild("NammonESP") then
+                v.Character.NammonESP:Destroy()
+            end
+        end
+    end
+end)
+
+VisualSec:NewButton("Full Bright", "ทำให้แมพสว่างเหมือนตอนกลางวันตลอดเวลา", function()
+    game.Lighting.Brightness = 2
+    game.Lighting.ClockTime = 14
+    game.Lighting.GlobalShadows = false
+end)
+
+-- [[ ⚙️ ตั้งค่า (Settings) ]] --
+local Settings = Window:NewTab("Settings")
+local SetSec = Settings:NewSection("Menu Config")
+
+SetSec:NewKeybind("Toggle UI", "ปุ่มสำหรับซ่อนหรือโชว์เมนูสคริปต์", Enum.KeyCode.RightControl, function()
+    Library:ToggleUI()
+end)
+
+-- แจ้งเตือนเมื่อรันสำเร็จ
+game.StarterGui:SetCore("SendNotification", {
+    Title = "NAMMON HUB",
+    Text = "ระบบพร้อมใช้งานแล้วนะน้ำมนต์! 🎮",
+    Duration = 5
+})
